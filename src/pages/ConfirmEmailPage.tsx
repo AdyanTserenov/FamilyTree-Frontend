@@ -43,7 +43,7 @@ export const ConfirmEmailPage = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-blue-600 font-bold text-2xl">
+          <Link to="/" className="inline-flex items-center gap-2 text-green-600 font-bold text-2xl">
             <TreePine className="w-7 h-7" />
             FamilyTree
           </Link>
@@ -66,7 +66,7 @@ export const ConfirmEmailPage = () => {
               <p className="text-gray-600 mb-8">{message}</p>
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
               >
                 Войти в аккаунт
               </Link>
@@ -83,7 +83,7 @@ export const ConfirmEmailPage = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
                 >
                   Войти
                 </Link>

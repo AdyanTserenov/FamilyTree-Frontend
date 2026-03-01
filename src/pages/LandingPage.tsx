@@ -7,7 +7,7 @@ export const LandingPage = () => {
       {/* Header */}
       <header className="border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-blue-600 font-bold text-xl">
+          <div className="flex items-center gap-2 text-green-600 font-bold text-xl">
             <TreePine className="w-6 h-6" />
             <span>FamilyTree</span>
           </div>
@@ -20,7 +20,7 @@ export const LandingPage = () => {
             </Link>
             <Link
               to="/register"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
             >
               Зарегистрироваться
             </Link>
@@ -29,16 +29,16 @@ export const LandingPage = () => {
       </header>
 
       {/* Hero */}
-      <section className="py-20 px-4 text-center bg-gradient-to-b from-blue-50 to-white">
+      <section className="py-20 px-4 text-center bg-gradient-to-b from-green-50 to-white">
         <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
             <Star className="w-4 h-4" />
             Сохраните историю вашей семьи
           </div>
           <h1 className="text-5xl font-bold text-gray-900 mb-6 leading-tight">
             Создайте семейное дерево,
             <br />
-            <span className="text-blue-600">которое живёт вечно</span>
+            <span className="text-green-600">которое живёт вечно</span>
           </h1>
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
             Храните истории, фотографии и связи вашей семьи в одном месте.
@@ -47,7 +47,7 @@ export const LandingPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl hover:bg-blue-700 transition-colors font-semibold text-lg"
+              className="inline-flex items-center gap-2 bg-green-600 text-white px-8 py-4 rounded-xl hover:bg-green-700 transition-colors font-semibold text-lg"
             >
               Начать бесплатно
               <ArrowRight className="w-5 h-5" />
@@ -69,8 +69,8 @@ export const LandingPage = () => {
             Всё что нужно для семейной истории
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center p-8 rounded-2xl bg-blue-50">
-              <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="text-center p-8 rounded-2xl bg-green-50">
+              <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <GitBranch className="w-7 h-7 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Интерактивный граф</h3>
@@ -101,17 +101,17 @@ export const LandingPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-blue-600">
+      <section className="py-20 px-4 bg-green-600">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
             Начните сохранять историю семьи сегодня
           </h2>
-          <p className="text-blue-100 text-lg mb-8">
+          <p className="text-green-100 text-lg mb-8">
             Бесплатная регистрация. Никаких скрытых платежей.
           </p>
           <Link
             to="/register"
-            className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-blue-50 transition-colors font-semibold text-lg"
+            className="inline-flex items-center gap-2 bg-white text-green-600 px-8 py-4 rounded-xl hover:bg-green-50 transition-colors font-semibold text-lg"
           >
             Создать аккаунт
             <ArrowRight className="w-5 h-5" />

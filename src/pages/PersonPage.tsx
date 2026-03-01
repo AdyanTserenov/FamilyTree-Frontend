@@ -225,7 +225,7 @@ export const PersonPage = () => {
   };
 
   const inputClass =
-    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
   if (personLoading) {
     return (
@@ -241,7 +241,7 @@ export const PersonPage = () => {
         <p className="text-gray-600">Персона не найдена</p>
         <Link
           to={`/trees/${treeIdNum}`}
-          className="text-blue-600 hover:text-blue-700 mt-4 inline-block"
+          className="text-green-600 hover:text-green-700 mt-4 inline-block"
         >
           Вернуться к дереву
         </Link>
@@ -293,14 +293,14 @@ export const PersonPage = () => {
             ) : (
               <div
                 className={`w-24 h-24 rounded-2xl flex items-center justify-center text-white text-2xl font-bold ${
-                  isMale ? 'bg-blue-500' : isFemale ? 'bg-pink-500' : 'bg-gray-500'
+                  isMale ? 'bg-green-500' : isFemale ? 'bg-pink-500' : 'bg-gray-500'
                 }`}
               >
                 {initials || '?'}
               </div>
             )}
             {canEditTree && (
-              <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-700 transition-colors shadow-md">
+              <label className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-green-700 transition-colors shadow-md">
                 <Upload className="w-4 h-4 text-white" />
                 <input
                   type="file"
@@ -384,7 +384,7 @@ export const PersonPage = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-5 py-4 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
+                  ? 'border-green-600 text-green-600'
                   : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
@@ -444,7 +444,7 @@ export const PersonPage = () => {
                             {other ? (
                               <Link
                                 to={`/trees/${treeIdNum}/persons/${other.id}`}
-                                className="text-blue-600 hover:text-blue-700 font-medium"
+                                className="text-green-600 hover:text-green-700 font-medium"
                               >
                                 {other.firstName} {other.lastName}
                               </Link>
@@ -479,7 +479,7 @@ export const PersonPage = () => {
                   <button
                     onClick={() => addCommentMutation.mutate()}
                     disabled={!commentText.trim() || addCommentMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {addCommentMutation.isPending ? (
                       <Spinner size="sm" />
@@ -534,7 +534,7 @@ export const PersonPage = () => {
                                     content: editingComment.content,
                                   })
                                 }
-                                className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                                className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
                               >
                                 Сохранить
                               </button>
@@ -552,7 +552,7 @@ export const PersonPage = () => {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => setReplyTo(comment.id)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title="Ответить"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
@@ -608,7 +608,7 @@ export const PersonPage = () => {
           {activeTab === 'media' && (
             <div className="space-y-4">
               {canEditTree && (
-                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors text-gray-600 hover:text-blue-600">
+                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors text-gray-600 hover:text-green-600">
                   <Upload className="w-5 h-5" />
                   <span className="font-medium">Загрузить файл</span>
                   <input
@@ -633,7 +633,7 @@ export const PersonPage = () => {
                       {file.fileType === 'IMAGE' ? (
                         <div className="aspect-square bg-gray-100">
                           <img
-                            src={file.downloadUrl}
+                            src={file.url}
                             alt={file.fileName}
                             className="w-full h-full object-cover"
                           />
@@ -653,7 +653,7 @@ export const PersonPage = () => {
                         <div className="flex gap-1 mt-2">
                           <button
                             onClick={() => handleDownload(file)}
-                            className="flex-1 flex items-center justify-center py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="flex-1 flex items-center justify-center py-1 text-xs text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           >
                             <Download className="w-3 h-3" />
                           </button>
@@ -691,7 +691,7 @@ export const PersonPage = () => {
                 {person.biography && !aiText && (
                   <button
                     onClick={() => setAiText(person.biography ?? '')}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+                    className="mt-2 text-sm text-green-600 hover:text-green-700"
                   >
                     Использовать биографию персоны
                   </button>
@@ -701,7 +701,7 @@ export const PersonPage = () => {
               <button
                 onClick={() => aiMutation.mutate()}
                 disabled={!aiText.trim() || aiMutation.isPending}
-                className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {aiMutation.isPending ? <Spinner size="sm" /> : <Sparkles className="w-5 h-5" />}
                 {aiMutation.isPending ? 'Анализ...' : 'Анализировать'}
@@ -711,9 +711,9 @@ export const PersonPage = () => {
               {aiResult && (
                 <div className="space-y-4">
                   {aiResult.summary && (
-                    <div className="bg-blue-50 rounded-xl p-4">
-                      <h4 className="text-sm font-semibold text-blue-800 mb-2">Краткое резюме</h4>
-                      <p className="text-blue-700 text-sm">{aiResult.summary}</p>
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <h4 className="text-sm font-semibold text-green-800 mb-2">Краткое резюме</h4>
+                      <p className="text-green-700 text-sm">{aiResult.summary}</p>
                     </div>
                   )}
 
@@ -899,7 +899,7 @@ export const PersonPage = () => {
                 !personForm.lastName?.trim() ||
                 updatePersonMutation.isPending
               }
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updatePersonMutation.isPending ? <Spinner size="sm" /> : null}
               Сохранить

@@ -50,7 +50,7 @@ export const LoginPage = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-blue-600 font-bold text-2xl">
+          <Link to="/" className="inline-flex items-center gap-2 text-green-600 font-bold text-2xl">
             <TreePine className="w-7 h-7" />
             FamilyTree
           </Link>
@@ -66,7 +66,7 @@ export const LoginPage = () => {
                 {...register('email')}
                 type="email"
                 placeholder="your@email.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.email && (
                 <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
@@ -79,7 +79,7 @@ export const LoginPage = () => {
                 {...register('password')}
                 type="password"
                 placeholder="••••••••"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.password && (
                 <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
@@ -87,7 +87,7 @@ export const LoginPage = () => {
             </div>
 
             <div className="flex justify-end">
-              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700">
+              <Link to="/forgot-password" className="text-sm text-green-600 hover:text-green-700">
                 Забыли пароль?
               </Link>
             </div>
@@ -95,7 +95,7 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSubmitting ? <Spinner size="sm" /> : null}
               {isSubmitting ? 'Вход...' : 'Войти'}
@@ -104,7 +104,7 @@ export const LoginPage = () => {
 
           <p className="text-center text-gray-600 mt-6">
             Нет аккаунта?{' '}
-            <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/register" className="text-green-600 hover:text-green-700 font-medium">
               Зарегистрироваться
             </Link>
           </p>

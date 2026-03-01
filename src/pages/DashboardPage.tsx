@@ -158,7 +158,7 @@ export const DashboardPage = () => {
         </div>
         <button
           onClick={() => setCreateModalOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
         >
           <Plus className="w-4 h-4" />
           Создать дерево
@@ -172,14 +172,14 @@ export const DashboardPage = () => {
         </div>
       ) : trees.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TreePine className="w-10 h-10 text-blue-600" />
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <TreePine className="w-10 h-10 text-green-600" />
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Нет семейных деревьев</h2>
           <p className="text-gray-600 mb-6">Создайте первое дерево, чтобы начать</p>
           <button
             onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+            className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
           >
             <Plus className="w-5 h-5" />
             Создать дерево
@@ -233,8 +233,8 @@ export const DashboardPage = () => {
 
               <Link to={`/trees/${tree.id}`} className="block">
                 <div className="flex items-start gap-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <TreePine className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <TreePine className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="min-w-0 flex-1 pr-6">
                     <h3 className="font-semibold text-gray-900 truncate">{tree.name}</h3>
@@ -274,7 +274,7 @@ export const DashboardPage = () => {
               onChange={(e) => setNewTreeName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreateTree()}
               placeholder="Например: Семья Ивановых"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               autoFocus
             />
           </div>
@@ -288,7 +288,7 @@ export const DashboardPage = () => {
             <button
               onClick={handleCreateTree}
               disabled={!newTreeName.trim() || createMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMutation.isPending ? <Spinner size="sm" /> : null}
               Создать
@@ -306,7 +306,7 @@ export const DashboardPage = () => {
               value={editTreeName}
               onChange={(e) => setEditTreeName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleEditTree()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               autoFocus
             />
           </div>
@@ -320,7 +320,7 @@ export const DashboardPage = () => {
             <button
               onClick={handleEditTree}
               disabled={!editTreeName.trim() || updateMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {updateMutation.isPending ? <Spinner size="sm" /> : null}
               Сохранить
@@ -368,12 +368,12 @@ export const DashboardPage = () => {
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="email@example.com"
                 type="email"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as 'EDITOR' | 'VIEWER')}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white"
               >
                 <option value="VIEWER">Наблюдатель</option>
                 <option value="EDITOR">Редактор</option>
@@ -381,7 +381,7 @@ export const DashboardPage = () => {
               <button
                 onClick={handleInvite}
                 disabled={!inviteEmail.trim() || inviteMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {inviteMutation.isPending ? <Spinner size="sm" /> : null}
                 Отправить

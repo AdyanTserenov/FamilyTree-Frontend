@@ -52,7 +52,7 @@ const PersonNode = ({ data }: NodeProps) => {
     >
       <div
         className={`rounded-xl border-2 p-3 text-center shadow-sm hover:shadow-md transition-shadow bg-white ${
-          isMale ? 'border-blue-300' : isFemale ? 'border-pink-300' : 'border-gray-300'
+          isMale ? 'border-green-300' : isFemale ? 'border-pink-300' : 'border-gray-300'
         }`}
       >
         {person.avatarUrl ? (
@@ -64,7 +64,7 @@ const PersonNode = ({ data }: NodeProps) => {
         ) : (
           <div
             className={`w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-semibold text-sm ${
-              isMale ? 'bg-blue-500' : isFemale ? 'bg-pink-500' : 'bg-gray-500'
+              isMale ? 'bg-green-500' : isFemale ? 'bg-pink-500' : 'bg-gray-500'
             }`}
           >
             {initials || '?'}
@@ -256,7 +256,7 @@ export const TreePage = () => {
     : [];
 
   const inputClass =
-    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
   return (
     <div className="-mx-4 sm:-mx-6 lg:-mx-8 -my-8">
@@ -291,7 +291,7 @@ export const TreePage = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Поиск персоны..."
-              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-48"
             />
             {searchQuery && filteredPersons.length > 0 && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 w-64 max-h-48 overflow-y-auto">
@@ -333,7 +333,7 @@ export const TreePage = () => {
               </button>
               <button
                 onClick={() => setAddPersonModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors"
+                className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
                 <span className="hidden sm:inline">Добавить</span>
@@ -351,15 +351,15 @@ export const TreePage = () => {
           </div>
         ) : persons.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <Plus className="w-10 h-10 text-blue-600" />
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <Plus className="w-10 h-10 text-green-600" />
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Дерево пустое</h2>
             <p className="text-gray-600 mb-6">Добавьте первого члена семьи</p>
             {canEditTree && (
               <button
                 onClick={() => setAddPersonModalOpen(true)}
-                className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
               >
                 <UserPlus className="w-5 h-5" />
                 Добавить персону
@@ -518,7 +518,7 @@ export const TreePage = () => {
                 !personForm.lastName.trim() ||
                 createPersonMutation.isPending
               }
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createPersonMutation.isPending ? <Spinner size="sm" /> : null}
               Добавить
@@ -594,7 +594,7 @@ export const TreePage = () => {
             <button
               onClick={() => addRelMutation.mutate()}
               disabled={!selectedPerson1 || !selectedPerson2 || addRelMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {addRelMutation.isPending ? <Spinner size="sm" /> : null}
               Добавить

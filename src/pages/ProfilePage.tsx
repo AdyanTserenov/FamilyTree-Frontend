@@ -97,7 +97,7 @@ export const ProfilePage = () => {
   };
 
   const inputClass =
-    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+    'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
   const fullName = [user?.firstName, user?.middleName, user?.lastName].filter(Boolean).join(' ');
   const initials = [user?.firstName?.[0], user?.lastName?.[0]].filter(Boolean).join('');
@@ -109,7 +109,7 @@ export const ProfilePage = () => {
       {/* Profile card */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
         <div className="flex items-center gap-5">
-          <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+          <div className="w-20 h-20 bg-green-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
             {initials || <User className="w-8 h-8" />}
           </div>
           <div>
@@ -132,7 +132,7 @@ export const ProfilePage = () => {
                   </div>
                   <button
                     onClick={handleResendVerification}
-                    className="text-xs text-blue-600 hover:text-blue-700 underline"
+                    className="text-xs text-green-600 hover:text-green-700 underline"
                   >
                     Отправить письмо
                   </button>
@@ -155,7 +155,7 @@ export const ProfilePage = () => {
             onClick={() => setActiveSection('profile')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
               activeSection === 'profile'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-green-600 text-green-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
@@ -166,7 +166,7 @@ export const ProfilePage = () => {
             onClick={() => setActiveSection('password')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors border-b-2 ${
               activeSection === 'password'
-                ? 'border-blue-600 text-blue-600'
+                ? 'border-green-600 text-green-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
@@ -232,7 +232,7 @@ export const ProfilePage = () => {
                 <button
                   type="submit"
                   disabled={profileSubmitting}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {profileSubmitting ? <Spinner size="sm" /> : null}
                   Сохранить изменения
@@ -290,7 +290,7 @@ export const ProfilePage = () => {
                 <button
                   type="submit"
                   disabled={passwordSubmitting}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {passwordSubmitting ? <Spinner size="sm" /> : null}
                   Изменить пароль

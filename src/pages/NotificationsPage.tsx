@@ -100,14 +100,14 @@ export const NotificationsPage = () => {
               className={`bg-white rounded-xl border p-4 transition-colors ${
                 notification.read
                   ? 'border-gray-200'
-                  : 'border-blue-200 bg-blue-50/30'
+                  : 'border-green-200 bg-green-50/30'
               }`}
             >
               <div className="flex items-start gap-3">
                 {/* Unread indicator */}
                 <div className="flex-shrink-0 mt-1">
                   {!notification.read ? (
-                    <div className="w-2.5 h-2.5 bg-blue-500 rounded-full" />
+                    <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />
                   ) : (
                     <div className="w-2.5 h-2.5 bg-transparent rounded-full" />
                   )}
@@ -132,7 +132,7 @@ export const NotificationsPage = () => {
                     <button
                       onClick={() => handleMarkRead(notification)}
                       disabled={markReadMutation.isPending}
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                       title="Отметить как прочитанное"
                     >
                       <Check className="w-4 h-4" />

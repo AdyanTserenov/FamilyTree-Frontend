@@ -1,10 +1,10 @@
 // Auth types
 export interface User {
   id: number;
-  email: string;
   firstName: string;
   lastName: string;
   middleName?: string;
+  email: string;
   emailVerified: boolean;
   createdAt: string;
 }
@@ -46,9 +46,10 @@ export interface Tree {
 
 export interface TreeMember {
   userId: number;
-  email: string;
   firstName: string;
   lastName: string;
+  middleName?: string;
+  email: string;
   role: TreeRole;
   joinedAt: string;
 }
@@ -70,8 +71,9 @@ export interface Person {
   gender: Gender;
   avatarUrl?: string;
   relationships?: Relationship[];
-  createdAt: string;
-  updatedAt: string;
+  fullName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PersonRequest {
@@ -133,13 +135,16 @@ export type MediaFileType = 'IMAGE' | 'DOCUMENT' | 'VIDEO' | 'AUDIO';
 
 export interface MediaFile {
   id: number;
-  personId: number;
+  personId?: number;
+  treeId: number;
   fileName: string;
   fileType: MediaFileType;
   description?: string;
   fileSize: number;
   uploadedAt: string;
-  downloadUrl: string;
+  uploadedById: number;
+  /** Presigned URL для временного доступа к файлу (60 мин) */
+  url: string;
 }
 
 // Notification types

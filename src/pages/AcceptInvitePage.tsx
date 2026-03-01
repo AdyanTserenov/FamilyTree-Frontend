@@ -52,7 +52,7 @@ export const AcceptInvitePage = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-blue-600 font-bold text-2xl">
+          <Link to="/" className="inline-flex items-center gap-2 text-green-600 font-bold text-2xl">
             <TreePine className="w-7 h-7" />
             FamilyTree
           </Link>
@@ -68,8 +68,8 @@ export const AcceptInvitePage = () => {
 
           {status === 'unauthenticated' && (
             <div className="py-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TreePine className="w-9 h-9 text-blue-600" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TreePine className="w-9 h-9 text-green-600" />
               </div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">Войдите для принятия</h1>
               <p className="text-gray-600 mb-8">
@@ -78,7 +78,7 @@ export const AcceptInvitePage = () => {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   to={`/login?redirect=/invite/${token}`}
-                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                  className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
                 >
                   Войти
                 </Link>
@@ -112,7 +112,7 @@ export const AcceptInvitePage = () => {
               <p className="text-gray-600 mb-8">{message}</p>
               <Link
                 to="/dashboard"
-                className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
               >
                 На главную
               </Link>

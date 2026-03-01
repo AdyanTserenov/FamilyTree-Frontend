@@ -20,7 +20,7 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center gap-2 text-blue-600 font-bold text-xl">
+          <Link to="/dashboard" className="flex items-center gap-2 text-green-600 font-bold text-xl">
             <TreePine className="w-6 h-6" />
             <span>FamilyTree</span>
           </Link>

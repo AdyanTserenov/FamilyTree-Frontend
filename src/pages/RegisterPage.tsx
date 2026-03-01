@@ -51,7 +51,7 @@ export const RegisterPage = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-blue-600 font-bold text-2xl">
+          <Link to="/" className="inline-flex items-center gap-2 text-green-600 font-bold text-2xl">
             <TreePine className="w-7 h-7" />
             FamilyTree
           </Link>
@@ -67,7 +67,7 @@ export const RegisterPage = () => {
                 <input
                   {...register('firstName')}
                   placeholder="Иван"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 {errors.firstName && (
                   <p className="text-red-500 text-xs mt-1">{errors.firstName.message}</p>
@@ -78,7 +78,7 @@ export const RegisterPage = () => {
                 <input
                   {...register('lastName')}
                   placeholder="Иванов"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
                 {errors.lastName && (
                   <p className="text-red-500 text-xs mt-1">{errors.lastName.message}</p>
@@ -91,7 +91,7 @@ export const RegisterPage = () => {
               <input
                 {...register('middleName')}
                 placeholder="Иванович (необязательно)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
 
@@ -101,7 +101,7 @@ export const RegisterPage = () => {
                 {...register('email')}
                 type="email"
                 placeholder="your@email.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
@@ -114,7 +114,7 @@ export const RegisterPage = () => {
                 {...register('password')}
                 type="password"
                 placeholder="Минимум 8 символов"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.password && (
                 <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
@@ -127,7 +127,7 @@ export const RegisterPage = () => {
                 {...register('confirmPassword')}
                 type="password"
                 placeholder="Повторите пароль"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.confirmPassword && (
                 <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
@@ -137,7 +137,7 @@ export const RegisterPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
             >
               {isSubmitting ? <Spinner size="sm" /> : null}
               {isSubmitting ? 'Регистрация...' : 'Зарегистрироваться'}
@@ -146,7 +146,7 @@ export const RegisterPage = () => {
 
           <p className="text-center text-gray-600 mt-6">
             Уже есть аккаунт?{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/login" className="text-green-600 hover:text-green-700 font-medium">
               Войти
             </Link>
           </p>

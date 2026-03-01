@@ -1,4 +1,4 @@
-import { authApi } from './axiosConfig';
+import { authApi, treeApi } from './axiosConfig';
 import type { ApiResponse, AuthResponse, SignInRequest, SignUpRequest, User } from '../types';
 
 export const authService = {
@@ -27,8 +27,9 @@ export const authService = {
     return response.data;
   },
 
+  // GET /api/profile → nginx → /profile → auth-service ProfileController
   getProfile: async (): Promise<ApiResponse<User>> => {
-    const response = await authApi.get<ApiResponse<User>>('/profile');
+    const response = await treeApi.get<ApiResponse<User>>('/profile');
     return response.data;
   },
 };

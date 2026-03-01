@@ -153,7 +153,7 @@ export const mediaService = {
   uploadMedia: async (treeId: number, personId: number, file: File, type: string, description?: string): Promise<ApiResponse<MediaFile>> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('type', type);
+    formData.append('fileType', type);
     if (description) formData.append('description', description);
     const response = await treeApi.post<ApiResponse<MediaFile>>(
       `/trees/${treeId}/persons/${personId}/media`,
