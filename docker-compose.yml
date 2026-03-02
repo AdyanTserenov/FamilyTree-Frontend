@@ -1,0 +1,31 @@
+version: "3.9"
+
+# ============================================================
+# Family Tree Frontend — Docker Compose
+# Standalone frontend service with nginx
+# Connects to the shared familytree-net network
+# created by FamilyTree-API docker-compose
+# ============================================================
+
+services:
+
+  # ──────────────────────────────────────────────────────────
+  # frontend  (port 3000 → nginx:80)
+  # ──────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: familytree-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - familytree-net
+
+# ──────────────────────────────────────────────────────────
+# Use the external network created by FamilyTree-API compose
+# ──────────────────────────────────────────────────────────
+networks:
+  familytree-net:
+    external: true

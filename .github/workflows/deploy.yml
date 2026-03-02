@@ -1,0 +1,41 @@
+name: Deploy Frontend to VM
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Frontend via SSH
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          command_timeout: 20m
+          script: |
+            set -e
+
+            echo "=== [1/5] Pulling latest Frontend code ==="
+            cd ~/vkr/FamilyTree-Frontend
+            git pull origin main
+
+            echo "=== [2/5] Rebuilding frontend container ==="
+            docker compose up --build -d
+
+            echo "=== [3/5] Waiting for frontend to start ==="
+            sleep 10
+
+            echo "=== [4/5] Container status ==="
+            docker compose ps
+
+            echo "=== [5/5] Health check ==="
+            curl -sf http://localhost:3000/health > /dev/null && echo "Frontend: OK" || echo "Frontend: FAILED"
+
+            echo "=== Deploy complete ==="
