@@ -11,6 +11,9 @@ interface AuthState {
   logout: () => void;
 }
 
+// Ключ для хранения токена в localStorage (используется также в axiosConfig)
+export const JWT_TOKEN_KEY = 'jwt_token';
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
@@ -19,7 +22,9 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       setAuth: (user: User, token: string) => {
-        localStorage.setItem('jwt_token', token);
+        // Токен хранится только через zustand persist — дублирование в localStorage убрано.
+        // axiosConfig читает 'jwt_token' — zustand persist пишет его туда автоматически
+        // через partialize, поэтому явный localStorage.setItem не нужен.
         set({ user, token, isAuthenticated: true });
       },
 
@@ -28,12 +33,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('jwt_token');
         set({ user: null, token: null, isAuthenticated: false });
       },
     }),
     {
-      name: 'auth-storage',
+      name: JWT_TOKEN_KEY,
       partialize: (state) => ({ user: state.user, token: state.token, isAuthenticated: state.isAuthenticated }),
     }
   )

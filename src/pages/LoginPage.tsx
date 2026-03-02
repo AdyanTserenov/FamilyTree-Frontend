@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ type FormData = z.infer<typeof schema>;
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
 
   const {
@@ -30,19 +31,22 @@ export const LoginPage = () => {
   const onSubmit = async (data: FormData) => {
     try {
       const response = await authService.signIn(data);
-      if (response.success && response.data?.token) {
-        const token = response.data.token;
+      if (response.status === 'success' && response.data) {
+        // Backend returns the JWT as a plain string in response.data
+        const token = response.data as unknown as string;
         localStorage.setItem('jwt_token', token);
         // Fetch profile
         const profileResponse = await authService.getProfile();
-        if (profileResponse.success && profileResponse.data) {
+        if (profileResponse.status === 'success' && profileResponse.data) {
           setAuth(profileResponse.data, token);
-          navigate('/dashboard');
+          // Honor ?redirect= query param (e.g. from invite links)
+          const redirect = searchParams.get('redirect');
+          navigate(redirect || '/dashboard');
         }
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Неверный email или пароль');
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Неверный email или пароль');
     }
   };
 

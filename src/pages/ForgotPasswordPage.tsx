@@ -28,13 +28,13 @@ export const ForgotPasswordPage = () => {
   const onSubmit = async (data: FormData) => {
     try {
       const response = await authService.forgotPassword(data.email);
-      if (response.success) {
+      if (response.status === 'success') {
         setSent(true);
         toast.success('Письмо отправлено на ваш email');
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Ошибка отправки письма');
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка отправки письма');
     }
   };
 

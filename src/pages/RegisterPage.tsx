@@ -37,13 +37,13 @@ export const RegisterPage = () => {
       const { confirmPassword: _confirm, ...signUpData } = data;
       void _confirm;
       const response = await authService.signUp(signUpData);
-      if (response.success) {
+      if (response.status === 'success') {
         toast.success('Регистрация успешна! Проверьте email для подтверждения.');
         navigate('/login');
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Ошибка регистрации');
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка регистрации');
     }
   };
 

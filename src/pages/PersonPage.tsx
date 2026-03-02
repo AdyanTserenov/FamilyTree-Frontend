@@ -20,6 +20,7 @@ import { personService, commentService, mediaService, aiService, treeService } f
 import { Modal } from '../components/ui/Modal';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
+import { VoiceInputButton } from '../components/ui/VoiceInputButton';
 import { canEdit } from '../utils/roleUtils';
 import { formatDate, formatDateTime, getAge } from '../utils/formatDate';
 import type { Person, TreeRole, Comment, MediaFile } from '../types';
@@ -876,7 +877,17 @@ export const PersonPage = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Биография</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">Биография</label>
+              <VoiceInputButton
+                onResult={(text) =>
+                  setPersonForm((f) => ({
+                    ...f,
+                    biography: (f.biography ? f.biography + ' ' : '') + text,
+                  }))
+                }
+              />
+            </div>
             <textarea
               value={personForm.biography ?? ''}
               onChange={(e) => setPersonForm((f) => ({ ...f, biography: e.target.value }))}

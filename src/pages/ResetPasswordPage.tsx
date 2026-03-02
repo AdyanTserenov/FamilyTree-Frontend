@@ -37,13 +37,13 @@ export const ResetPasswordPage = () => {
     }
     try {
       const response = await authService.resetPassword(token, data.newPassword);
-      if (response.success) {
+      if (response.status === 'success') {
         toast.success('Пароль успешно изменён!');
         navigate('/login');
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Ошибка сброса пароля. Ссылка могла устареть.');
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка сброса пароля. Ссылка могла устареть.');
     }
   };
 

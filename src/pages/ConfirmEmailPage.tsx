@@ -22,17 +22,17 @@ export const ConfirmEmailPage = () => {
     const confirm = async () => {
       try {
         const response = await authService.confirmEmail(token);
-        if (response.success) {
+        if (response.status === 'success') {
           setStatus('success');
           setMessage('Ваш email успешно подтверждён!');
         } else {
           setStatus('error');
-          setMessage(response.message || 'Ошибка подтверждения email.');
+          setMessage(response.error || 'Ошибка подтверждения email.');
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { message?: string } } };
+        const err = error as { response?: { data?: { error?: string; message?: string } } };
         setStatus('error');
-        setMessage(err.response?.data?.message || 'Ссылка недействительна или устарела.');
+        setMessage(err.response?.data?.error || err.response?.data?.message || 'Ссылка недействительна или устарела.');
       }
     };
 

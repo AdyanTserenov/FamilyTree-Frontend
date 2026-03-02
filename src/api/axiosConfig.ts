@@ -17,11 +17,23 @@ export const treeApi = axios.create({
   },
 });
 
+// Читает JWT из zustand persist хранилища (ключ 'jwt_token', поле token внутри JSON)
+const getToken = (): string | null => {
+  try {
+    const raw = localStorage.getItem('jwt_token');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { state?: { token?: string } };
+    return parsed?.state?.token ?? null;
+  } catch {
+    return null;
+  }
+};
+
 // Add JWT token to requests
 const addAuthInterceptor = (instance: typeof treeApi) => {
   instance.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem('jwt_token');
+      const token = getToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -35,7 +47,9 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
     (error) => {
       if (error.response?.status === 401) {
         localStorage.removeItem('jwt_token');
-        window.location.href = '/login';
+        const currentPath = window.location.pathname + window.location.search;
+        const redirect = currentPath !== '/login' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
+        window.location.href = `/login${redirect}`;
       }
       return Promise.reject(error);
     }

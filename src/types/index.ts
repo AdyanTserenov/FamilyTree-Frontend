@@ -26,7 +26,29 @@ export interface SignInRequest {
   password: string;
 }
 
-// API Response wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+// API Response wrappers
+//
+// Two different shapes exist in the backend:
+//
+// 1. auth-service (auth-service/dto/CustomApiResponse.java):
+//      { status: "success"|"error", data: T, error: string|null, details: {...}|null }
+//
+// 2. tree-service (family-tree-auth-starter/dto/CustomApiResponse.java):
+//      { success: boolean, message: string|null, data: T }
+//
+// Use AuthApiResponse for authApi calls, ApiResponse for treeApi calls.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Used for auth-service responses (authApi + /api/profile via treeApi) */
+export interface AuthApiResponse<T> {
+  status: 'success' | 'error';
+  data: T;
+  error: string | null;
+  details?: Record<string, unknown> | null;
+}
+
+/** Used for tree-service responses (treeApi) */
 export interface ApiResponse<T> {
   success: boolean;
   message: string | null;

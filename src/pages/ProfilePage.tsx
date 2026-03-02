@@ -18,6 +18,7 @@ const profileSchema = z.object({
 
 const passwordSchema = z
   .object({
+    currentPassword: z.string().min(1, 'Введите текущий пароль'),
     newPassword: z.string().min(8, 'Пароль должен содержать минимум 8 символов'),
     confirmPassword: z.string(),
   })
@@ -57,42 +58,45 @@ export const ProfilePage = () => {
 
   const onProfileSubmit = async (data: ProfileFormData) => {
     try {
-      // Re-fetch profile after update (assuming no direct update endpoint, refresh profile)
-      // In a real app you'd call a PATCH /profile endpoint
-      // For now we update local state optimistically
-      if (user) {
-        setUser({
-          ...user,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          middleName: data.middleName,
-        });
+      const response = await authService.updateProfile({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        middleName: data.middleName,
+      });
+      if (response.status === 'success' && response.data) {
+        setUser(response.data);
+        toast.success('Профиль обновлён!');
       }
-      toast.success('Профиль обновлён!');
-    } catch {
-      toast.error('Ошибка обновления профиля');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка обновления профиля');
     }
   };
 
   const onPasswordSubmit = async (data: PasswordFormData) => {
     try {
-      // Use forgot password flow to reset — in a real app there'd be a change-password endpoint
-      // Here we simulate success
-      void data;
-      toast.success('Пароль успешно изменён!');
-      resetPassword();
-    } catch {
-      toast.error('Ошибка изменения пароля');
+      const response = await authService.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+      });
+      if (response.status === 'success') {
+        toast.success('Пароль успешно изменён!');
+        resetPassword();
+      }
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка изменения пароля');
     }
   };
 
   const handleResendVerification = async () => {
     if (!user?.email) return;
     try {
-      await authService.forgotPassword(user.email);
+      await authService.resendVerification(user.email);
       toast.success('Письмо с подтверждением отправлено');
-    } catch {
-      toast.error('Ошибка отправки письма');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка отправки письма');
     }
   };
 
@@ -254,6 +258,23 @@ export const ProfilePage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Текущий пароль
+                </label>
+                <input
+                  {...registerPassword('currentPassword')}
+                  type="password"
+                  placeholder="Введите текущий пароль"
+                  className={inputClass}
+                />
+                {passwordErrors.currentPassword && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {passwordErrors.currentPassword.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Новый пароль
                 </label>
                 <input
@@ -276,7 +297,7 @@ export const ProfilePage = () => {
                 <input
                   {...registerPassword('confirmPassword')}
                   type="password"
-                  placeholder="Повторите пароль"
+                  placeholder="Повторите новый пароль"
                   className={inputClass}
                 />
                 {passwordErrors.confirmPassword && (

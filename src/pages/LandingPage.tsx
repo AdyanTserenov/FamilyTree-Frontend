@@ -121,7 +121,7 @@ export const LandingPage = () => {
 
       {/* Footer */}
       <footer className="py-8 px-4 border-t border-gray-200 text-center text-gray-500">
-        <p>© 2024 FamilyTree. Все права защищены.</p>
+        <p>© 2026 FamilyTree. Все права защищены.</p>
       </footer>
     </div>
   );
