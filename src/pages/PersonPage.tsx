@@ -22,6 +22,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 import { VoiceInputButton } from '../components/ui/VoiceInputButton';
 import { canEdit } from '../utils/roleUtils';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { formatDate, formatDateTime, getAge } from '../utils/formatDate';
 import type { Person, TreeRole, Comment, MediaFile } from '../types';
 
@@ -66,6 +67,7 @@ export const PersonPage = () => {
     enabled: !!treeIdNum && !!personIdNum,
   });
   const person = personData?.data;
+  usePageTitle(person?.fullName ?? person?.firstName);
 
   // Fetch comments
   const { data: commentsData } = useQuery({

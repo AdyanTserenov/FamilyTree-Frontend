@@ -8,6 +8,7 @@ import { authService } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { formatDate } from '../utils/formatDate';
 
 const profileSchema = z.object({
@@ -31,6 +32,7 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export const ProfilePage = () => {
+  usePageTitle('Профиль');
   const { user, setUser } = useAuthStore();
   const [activeSection, setActiveSection] = useState<'profile' | 'password'>('profile');
 

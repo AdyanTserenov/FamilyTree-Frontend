@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="16" fill="#16a34a"/>
+  <!-- Tree trunk -->
+  <rect x="14.5" y="20" width="3" height="7" rx="1" fill="#fff"/>
+  <!-- Tree body (triangle layers) -->
+  <polygon points="16,4 24,16 8,16" fill="#fff"/>
+  <polygon points="16,9 23,19 9,19" fill="#16a34a"/>
+  <polygon points="16,12 22,21 10,21" fill="#fff"/>
+  <polygon points="16,16 21,23 11,23" fill="#16a34a"/>
+</svg>

@@ -3,10 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { TreePine, CheckCircle, XCircle } from 'lucide-react';
 import { authService } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 type Status = 'loading' | 'success' | 'error';
 
 export const ConfirmEmailPage = () => {
+  usePageTitle('Подтверждение email');
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
   const [status, setStatus] = useState<Status>('loading');

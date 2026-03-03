@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useState } from 'react';
 import { authService } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const schema = z.object({
   email: z.string().email('Введите корректный email'),
@@ -15,6 +16,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const ForgotPasswordPage = () => {
+  usePageTitle('Восстановление пароля');
   const [sent, setSent] = useState(false);
 
   const {

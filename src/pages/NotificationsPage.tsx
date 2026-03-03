@@ -6,6 +6,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 import { formatDateTime } from '../utils/formatDate';
+import { usePageTitle } from '../hooks/usePageTitle';
 import type { Notification, NotificationType } from '../types';
 
 const notificationTypeLabel: Record<NotificationType, string> = {
@@ -21,6 +22,7 @@ const notificationTypeVariant: Record<NotificationType, 'info' | 'success' | 'de
 };
 
 export const NotificationsPage = () => {
+  usePageTitle('Уведомления');
   const queryClient = useQueryClient();
   const { notifications, markAsRead, markAllAsRead, removeNotification, unreadCount } =
     useNotificationStore();

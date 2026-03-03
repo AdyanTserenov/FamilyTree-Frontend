@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { TreePine, Users, GitBranch, Shield, Star, ArrowRight } from 'lucide-react';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 export const LandingPage = () => {
+  usePageTitle('Главная');
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}

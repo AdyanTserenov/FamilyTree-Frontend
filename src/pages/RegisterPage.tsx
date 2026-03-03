@@ -6,6 +6,7 @@ import { TreePine } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authService } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const schema = z.object({
   firstName: z.string().min(1, 'Введите имя'),
@@ -22,6 +23,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const RegisterPage = () => {
+  usePageTitle('Регистрация');
   const navigate = useNavigate();
 
   const {

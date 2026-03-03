@@ -5,10 +5,12 @@ import toast from 'react-hot-toast';
 import { treeService } from '../api/trees';
 import { useAuthStore } from '../store/authStore';
 import { Spinner } from '../components/ui/Spinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 type Status = 'loading' | 'success' | 'error' | 'unauthenticated';
 
 export const AcceptInvitePage = () => {
+  usePageTitle('Приглашение');
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();

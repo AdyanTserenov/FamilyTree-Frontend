@@ -6,6 +6,7 @@ import { TreePine } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authService } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const schema = z.object({
   newPassword: z.string().min(8, 'Пароль должен содержать минимум 8 символов'),
@@ -18,6 +19,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const ResetPasswordPage = () => {
+  usePageTitle('Сброс пароля');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';

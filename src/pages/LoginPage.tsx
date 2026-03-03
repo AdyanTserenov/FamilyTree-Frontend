@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { authService } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { Spinner } from '../components/ui/Spinner';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const schema = z.object({
   email: z.string().email('Введите корректный email'),
@@ -16,6 +17,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 export const LoginPage = () => {
+  usePageTitle('Вход');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();

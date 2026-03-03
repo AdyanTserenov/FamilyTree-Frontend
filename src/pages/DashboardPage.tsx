@@ -10,9 +10,11 @@ import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 import { roleLabels } from '../utils/roleUtils';
 import { formatDate } from '../utils/formatDate';
+import { usePageTitle } from '../hooks/usePageTitle';
 import type { Tree } from '../types';
 
 export const DashboardPage = () => {
+  usePageTitle('Мои деревья');
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 

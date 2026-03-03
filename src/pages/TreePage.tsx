@@ -29,6 +29,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 import { VoiceInputButton } from '../components/ui/VoiceInputButton';
 import { roleLabels, canEdit } from '../utils/roleUtils';
+import { usePageTitle } from '../hooks/usePageTitle';
 import type { Person, RelationshipType, TreeRole, TreeMember } from '../types';
 
 // Custom person node data type
@@ -118,6 +119,7 @@ export const TreePage = () => {
     queryFn: () => treeService.getTrees(),
   });
   const currentTree = treesData?.data?.find((t) => t.id === treeIdNum);
+  usePageTitle(currentTree?.name);
   const userRole = currentTree?.role as TreeRole | undefined;
   const canEditTree = canEdit(userRole);
 
