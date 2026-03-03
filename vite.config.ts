@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -7,6 +7,20 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  test: {
+    // happy-dom provides a full in-memory localStorage implementation.
+    // jsdom 28.x (bundled with vitest 4.x) requires a --localstorage-file
+    // CLI flag which breaks localStorage in tests without extra config.
+    environment: 'happy-dom',
+    globals: true,
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      reporter: ['text', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/main.tsx', 'src/App.tsx', 'src/**/*.d.ts'],
+    },
+  },
   server: {
     port: 3000,
     proxy: {
