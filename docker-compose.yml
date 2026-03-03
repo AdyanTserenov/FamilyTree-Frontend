@@ -3,7 +3,7 @@ version: "3.9"
 # ============================================================
 # Family Tree Frontend — Docker Compose
 # Standalone frontend service with nginx
-# Connects to the shared familytree-net network
+# Connects to the shared familytree-api_familytree-net network
 # created by FamilyTree-API docker-compose
 # ============================================================
 
@@ -21,11 +21,13 @@ services:
     ports:
       - "3000:80"
     networks:
-      - familytree-net
+      - familytree-api_familytree-net
 
 # ──────────────────────────────────────────────────────────
 # Use the external network created by FamilyTree-API compose
+# Docker Compose prefixes the network with the project name:
+# project=familytree-api → network=familytree-api_familytree-net
 # ──────────────────────────────────────────────────────────
 networks:
-  familytree-net:
+  familytree-api_familytree-net:
     external: true
