@@ -26,16 +26,20 @@ jobs:
             cd ~/vkr/FamilyTree-Frontend
             git pull origin main
 
-            echo "=== [2/5] Rebuilding frontend container ==="
-            docker compose up --build -d --force-recreate
+            echo "=== [2/5] Stopping and removing existing frontend container ==="
+            docker stop familytree-frontend 2>/dev/null || true
+            docker rm familytree-frontend 2>/dev/null || true
 
-            echo "=== [3/5] Waiting for frontend to start ==="
+            echo "=== [3/5] Rebuilding and starting frontend container ==="
+            docker compose up --build -d
+
+            echo "=== [4/5] Waiting for frontend to start ==="
             sleep 10
 
-            echo "=== [4/5] Container status ==="
+            echo "=== [5/5] Container status ==="
             docker compose ps
 
-            echo "=== [5/5] Health check ==="
-            curl -sf http://localhost:3000/health > /dev/null && echo "Frontend: OK" || echo "Frontend: FAILED"
+            echo "=== [6/6] Health check ==="
+            curl -sf http://localhost:3000 > /dev/null && echo "Frontend: OK" || echo "Frontend: FAILED"
 
             echo "=== Deploy complete ==="
