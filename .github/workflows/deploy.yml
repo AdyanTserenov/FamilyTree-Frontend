@@ -27,7 +27,7 @@ jobs:
             git pull origin main
 
             echo "=== [2/5] Rebuilding frontend container ==="
-            docker compose up --build -d
+            docker compose up --build -d --force-recreate
 
             echo "=== [3/5] Waiting for frontend to start ==="
             sleep 10
