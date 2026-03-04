@@ -36,8 +36,9 @@ export const LoginPage = () => {
       if (response.status === 'success' && response.data) {
         // Backend returns the JWT as a plain string in response.data
         const token = response.data as unknown as string;
-        localStorage.setItem('jwt_token', token);
-        // Fetch profile
+        // Store token via zustand persist so axiosConfig can read it back
+        setAuth({ id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' }, token);
+        // Fetch profile to get full user data
         const profileResponse = await authService.getProfile();
         if (profileResponse.status === 'success' && profileResponse.data) {
           setAuth(profileResponse.data, token);
@@ -45,9 +46,13 @@ export const LoginPage = () => {
           const redirect = searchParams.get('redirect');
           navigate(redirect || '/dashboard');
         }
+      } else {
+        toast.error(response.error || 'Неверный email или пароль');
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      const err = error as {
+        response?: { data?: { error?: string; message?: string } };
+      };
       toast.error(err.response?.data?.error || err.response?.data?.message || 'Неверный email или пароль');
     }
   };

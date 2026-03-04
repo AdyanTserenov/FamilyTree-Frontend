@@ -42,10 +42,26 @@ export const RegisterPage = () => {
       if (response.status === 'success') {
         toast.success('Регистрация успешна! Проверьте email для подтверждения.');
         navigate('/login');
+      } else {
+        toast.error(response.error || 'Ошибка регистрации');
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string; message?: string } } };
-      toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка регистрации');
+      const err = error as {
+        response?: {
+          data?: {
+            error?: string;
+            message?: string;
+            details?: Record<string, string>;
+          };
+        };
+      };
+      const data = err.response?.data;
+      if (data?.details && Object.keys(data.details).length > 0) {
+        const messages = Object.values(data.details).join(', ');
+        toast.error(messages);
+      } else {
+        toast.error(data?.error || data?.message || 'Ошибка регистрации');
+      }
     }
   };
 
