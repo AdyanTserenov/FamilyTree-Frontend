@@ -36,19 +36,20 @@ export const LoginPage = () => {
       if (response.status === 'success' && response.data) {
         // Backend returns the JWT as a plain string in response.data
         const token = response.data as unknown as string;
-        // Store token immediately with minimal user data so PrivateRoute passes
+        // Set token in store first so getToken() returns it for subsequent requests
         setAuth({ id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' }, token);
-        // Navigate immediately — don't wait for getProfile to avoid redirect loops
-        const redirect = searchParams.get('redirect');
-        navigate(redirect || '/dashboard');
-        // Fetch full profile in background after navigation
-        authService.getProfile().then((profileResponse) => {
+        // Now fetch profile — token is in store so Authorization header will be sent
+        try {
+          const profileResponse = await authService.getProfile();
           if (profileResponse.status === 'success' && profileResponse.data) {
             setAuth(profileResponse.data, token);
           }
-        }).catch(() => {
-          // Profile fetch failed — user is still logged in with minimal data
-        });
+        } catch {
+          // Profile fetch failed — continue with minimal user data
+        }
+        // Navigate after auth state is fully set
+        const redirect = searchParams.get('redirect');
+        navigate(redirect || '/dashboard');
       } else {
         toast.error(response.error || 'Неверный email или пароль');
       }

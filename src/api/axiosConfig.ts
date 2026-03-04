@@ -56,7 +56,8 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
         // Don't redirect if already on auth pages — let the page handle the error itself
         const isAuthPage = currentPath === '/login' || currentPath === '/register';
         if (!isAuthPage) {
-          localStorage.removeItem('jwt_token');
+          // Clear auth state via zustand store (also clears localStorage via persist)
+          useAuthStore.getState().logout();
           const fullPath = window.location.pathname + window.location.search;
           window.location.href = `/login?redirect=${encodeURIComponent(fullPath)}`;
         }
