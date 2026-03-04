@@ -33,8 +33,15 @@ export const ConfirmEmailPage = () => {
         }
       } catch (error: unknown) {
         const err = error as { response?: { data?: { error?: string; message?: string } } };
-        setStatus('error');
-        setMessage(err.response?.data?.error || err.response?.data?.message || 'Ссылка недействительна или устарела.');
+        const errMsg = err.response?.data?.error || err.response?.data?.message || '';
+        // If token was already used — email was already confirmed, treat as success
+        if (errMsg.toLowerCase().includes('уже использовался') || errMsg.toLowerCase().includes('already used')) {
+          setStatus('success');
+          setMessage('Ваш email уже был подтверждён ранее!');
+        } else {
+          setStatus('error');
+          setMessage(errMsg || 'Ссылка недействительна или устарела.');
+        }
       }
     };
 
