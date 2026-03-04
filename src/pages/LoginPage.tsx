@@ -36,16 +36,19 @@ export const LoginPage = () => {
       if (response.status === 'success' && response.data) {
         // Backend returns the JWT as a plain string in response.data
         const token = response.data as unknown as string;
-        // Store token via zustand persist so axiosConfig can read it back
+        // Store token immediately with minimal user data so PrivateRoute passes
         setAuth({ id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' }, token);
-        // Fetch profile to get full user data
-        const profileResponse = await authService.getProfile();
-        if (profileResponse.status === 'success' && profileResponse.data) {
-          setAuth(profileResponse.data, token);
-          // Honor ?redirect= query param (e.g. from invite links)
-          const redirect = searchParams.get('redirect');
-          navigate(redirect || '/dashboard');
-        }
+        // Navigate immediately — don't wait for getProfile to avoid redirect loops
+        const redirect = searchParams.get('redirect');
+        navigate(redirect || '/dashboard');
+        // Fetch full profile in background after navigation
+        authService.getProfile().then((profileResponse) => {
+          if (profileResponse.status === 'success' && profileResponse.data) {
+            setAuth(profileResponse.data, token);
+          }
+        }).catch(() => {
+          // Profile fetch failed — user is still logged in with minimal data
+        });
       } else {
         toast.error(response.error || 'Неверный email или пароль');
       }
