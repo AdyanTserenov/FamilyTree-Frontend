@@ -53,9 +53,11 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
     (error) => {
       if (error.response?.status === 401) {
         const currentPath = window.location.pathname;
-        // Don't redirect if already on auth pages — let the page handle the error itself
-        const isAuthPage = currentPath === '/login' || currentPath === '/register';
-        if (!isAuthPage) {
+        // Don't redirect if already on auth/public pages — let the page handle the error itself
+        const isPublicPage = currentPath === '/login' || currentPath === '/register'
+          || currentPath === '/confirm-email' || currentPath === '/reset-password'
+          || currentPath === '/forgot-password' || currentPath.startsWith('/invite/');
+        if (!isPublicPage) {
           // Clear auth state via zustand store (also clears localStorage via persist)
           useAuthStore.getState().logout();
           const fullPath = window.location.pathname + window.location.search;
