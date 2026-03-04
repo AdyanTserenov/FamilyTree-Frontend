@@ -20,7 +20,7 @@ export const LoginPage = () => {
   usePageTitle('Вход');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setAuth } = useAuthStore();
+  const { setAuth, setUser } = useAuthStore();
 
   const {
     register,
@@ -36,18 +36,16 @@ export const LoginPage = () => {
       if (response.status === 'success' && response.data) {
         // Backend returns the JWT as a plain string in response.data
         const token = response.data as unknown as string;
-        // Set token in store first so getToken() returns it for subsequent requests
+        // Store token immediately so axios interceptor sends it on subsequent requests
         setAuth({ id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' }, token);
-        // Now fetch profile — token is in store so Authorization header will be sent
-        try {
-          const profileResponse = await authService.getProfile();
+        // Fetch full profile in background — update user data without changing token
+        authService.getProfile().then((profileResponse) => {
           if (profileResponse.status === 'success' && profileResponse.data) {
-            setAuth(profileResponse.data, token);
+            setUser(profileResponse.data);
           }
-        } catch {
-          // Profile fetch failed — continue with minimal user data
-        }
-        // Navigate after auth state is fully set
+        }).catch(() => {
+          // Profile fetch failed — user stays with minimal data, not a blocker
+        });
         const redirect = searchParams.get('redirect');
         navigate(redirect || '/dashboard');
       } else {

@@ -18,22 +18,9 @@ export const treeApi = axios.create({
   },
 });
 
-// Читает JWT напрямую из zustand store (in-memory, синхронно)
-// Fallback на localStorage для случаев когда store ещё не инициализирован
-const getToken = (): string | null => {
-  // Primary: read from zustand in-memory store (always up-to-date)
-  const storeToken = useAuthStore.getState().token;
-  if (storeToken) return storeToken;
-  // Fallback: read from localStorage (for page reloads before store hydrates)
-  try {
-    const raw = localStorage.getItem('jwt_token');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { state?: { token?: string } };
-    return parsed?.state?.token ?? null;
-  } catch {
-    return null;
-  }
-};
+// Reads JWT from zustand in-memory store — always synchronous and up-to-date.
+// Zustand persist hydrates synchronously on import, so no localStorage fallback needed.
+const getToken = (): string | null => useAuthStore.getState().token;
 
 // Add JWT token to requests
 const addAuthInterceptor = (instance: typeof treeApi) => {

@@ -8,29 +8,19 @@ export const useNotifications = () => {
   const { isAuthenticated } = useAuthStore();
   const { setUnreadCount, setNotifications } = useNotificationStore();
 
-  const { data: unreadData } = useQuery({
-    queryKey: ['notifications', 'unread-count'],
-    queryFn: () => notificationService.getUnreadCount(),
-    enabled: isAuthenticated,
-    refetchInterval: 30000, // Poll every 30 seconds
-  });
-
   const { data: notificationsData } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => notificationService.getNotifications(),
     enabled: isAuthenticated,
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Poll every 30 seconds
   });
 
   useEffect(() => {
-    if (unreadData?.data !== undefined) {
-      setUnreadCount(unreadData.data.unreadCount);
-    }
-  }, [unreadData, setUnreadCount]);
-
-  useEffect(() => {
     if (notificationsData?.data) {
-      setNotifications(notificationsData.data);
+      const notifications = notificationsData.data;
+      setNotifications(notifications);
+      // Derive unread count from the list — no separate API call needed
+      setUnreadCount(notifications.filter((n) => !n.read).length);
     }
-  }, [notificationsData, setNotifications]);
+  }, [notificationsData, setNotifications, setUnreadCount]);
 };

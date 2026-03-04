@@ -82,7 +82,8 @@ export const DashboardPage = () => {
   });
 
   const getInviteLinkMutation = useMutation({
-    mutationFn: (treeId: number) => treeService.getInviteLink(treeId),
+    mutationFn: ({ treeId, email, role }: { treeId: number; email: string; role: string }) =>
+      treeService.getInviteLink(treeId, email, role),
     onSuccess: (data) => {
       if (data.data?.inviteLink) {
         setInviteLink(data.data.inviteLink);
@@ -113,7 +114,7 @@ export const DashboardPage = () => {
 
   const handleGetInviteLink = () => {
     if (!selectedTree) return;
-    getInviteLinkMutation.mutate(selectedTree.id);
+    getInviteLinkMutation.mutate({ treeId: selectedTree.id, email: inviteEmail.trim(), role: inviteRole });
   };
 
   const handleCopyLink = async () => {

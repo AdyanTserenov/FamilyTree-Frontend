@@ -50,8 +50,8 @@ export const treeService = {
     return response.data;
   },
 
-  getInviteLink: async (treeId: number): Promise<ApiResponse<InviteLinkResponse>> => {
-    const response = await treeApi.post<ApiResponse<InviteLinkResponse>>(`/trees/${treeId}/invite-link`);
+  getInviteLink: async (treeId: number, email: string, role: string): Promise<ApiResponse<InviteLinkResponse>> => {
+    const response = await treeApi.post<ApiResponse<InviteLinkResponse>>(`/trees/${treeId}/invite-link`, { email, role });
     return response.data;
   },
 
