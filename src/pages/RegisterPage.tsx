@@ -51,16 +51,22 @@ export const RegisterPage = () => {
           data?: {
             error?: string;
             message?: string;
-            details?: Record<string, string>;
+            details?: Record<string, string | unknown>;
           };
         };
       };
-      const data = err.response?.data;
-      if (data?.details && Object.keys(data.details).length > 0) {
-        const messages = Object.values(data.details).join(', ');
-        toast.error(messages);
+      const respData = err.response?.data;
+      if (respData?.details && Object.keys(respData.details).length > 0) {
+        // Show each field validation error on a separate toast
+        Object.values(respData.details).forEach((msg) => {
+          toast.error(String(msg));
+        });
+      } else if (respData?.error) {
+        toast.error(respData.error);
+      } else if (respData?.message) {
+        toast.error(respData.message);
       } else {
-        toast.error(data?.error || data?.message || 'Ошибка регистрации');
+        toast.error('Ошибка регистрации. Попробуйте ещё раз.');
       }
     }
   };
@@ -132,6 +138,7 @@ export const RegisterPage = () => {
                 {...register('password')}
                 type="password"
                 placeholder="Минимум 8 символов"
+                autoComplete="new-password"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.password && (
@@ -145,6 +152,7 @@ export const RegisterPage = () => {
                 {...register('confirmPassword')}
                 type="password"
                 placeholder="Повторите пароль"
+                autoComplete="new-password"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {errors.confirmPassword && (
