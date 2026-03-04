@@ -46,10 +46,14 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
-        localStorage.removeItem('jwt_token');
-        const currentPath = window.location.pathname + window.location.search;
-        const redirect = currentPath !== '/login' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
-        window.location.href = `/login${redirect}`;
+        const currentPath = window.location.pathname;
+        // Don't redirect if already on auth pages — let the page handle the error itself
+        const isAuthPage = currentPath === '/login' || currentPath === '/register';
+        if (!isAuthPage) {
+          localStorage.removeItem('jwt_token');
+          const fullPath = window.location.pathname + window.location.search;
+          window.location.href = `/login?redirect=${encodeURIComponent(fullPath)}`;
+        }
       }
       return Promise.reject(error);
     }
