@@ -63,6 +63,11 @@ export const authService = {
     const response = await treeApi.post<AuthApiResponse<null>>('/profile/change-password', data);
     return response.data;
   },
+
+  deleteAccount: async (): Promise<AuthApiResponse<string>> => {
+    const response = await treeApi.delete<AuthApiResponse<string>>('/profile');
+    return response.data;
+  },
 };
 
 // Re-export ApiResponse so other files can import it from here if needed
