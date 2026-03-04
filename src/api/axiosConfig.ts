@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../store/authStore';
 
 const AUTH_BASE_URL = '/api/auth';
 const TREE_BASE_URL = '/api';
@@ -17,8 +18,13 @@ export const treeApi = axios.create({
   },
 });
 
-// Читает JWT из zustand persist хранилища (ключ 'jwt_token', поле token внутри JSON)
+// Читает JWT напрямую из zustand store (in-memory, синхронно)
+// Fallback на localStorage для случаев когда store ещё не инициализирован
 const getToken = (): string | null => {
+  // Primary: read from zustand in-memory store (always up-to-date)
+  const storeToken = useAuthStore.getState().token;
+  if (storeToken) return storeToken;
+  // Fallback: read from localStorage (for page reloads before store hydrates)
   try {
     const raw = localStorage.getItem('jwt_token');
     if (!raw) return null;
