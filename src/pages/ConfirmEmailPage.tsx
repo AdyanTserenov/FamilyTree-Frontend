@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { TreePine, CheckCircle, XCircle } from 'lucide-react';
 import { authService } from '../api/auth';
@@ -13,6 +13,7 @@ export const ConfirmEmailPage = () => {
   const token = searchParams.get('token') || '';
   const [status, setStatus] = useState<Status>('loading');
   const [message, setMessage] = useState('');
+  const calledRef = useRef(false);
 
   useEffect(() => {
     if (!token) {
@@ -21,6 +22,10 @@ export const ConfirmEmailPage = () => {
       return;
     }
 
+    // Prevent double-call in React 18 StrictMode
+    if (calledRef.current) return;
+    calledRef.current = true;
+
     const confirm = async () => {
       try {
         const response = await authService.confirmEmail(token);
@@ -28,25 +33,46 @@ export const ConfirmEmailPage = () => {
           setStatus('success');
           setMessage('Ваш email успешно подтверждён!');
         } else {
-          setStatus('error');
-          setMessage(response.error || 'Ошибка подтверждения email.');
+          // Backend returned 2xx but status !== 'success' — treat error field
+          const errMsg = response.error || '';
+          handleErrorMessage(errMsg);
         }
       } catch (error: unknown) {
-        const err = error as { response?: { data?: { error?: string; message?: string } } };
+        const err = error as { response?: { status?: number; data?: { error?: string; message?: string } } };
+        const httpStatus = err.response?.status;
         const errMsg = err.response?.data?.error || err.response?.data?.message || '';
-        // If token was already used — email was already confirmed, treat as success
+
+        // 400 with "already used" → email was already confirmed
         if (errMsg.toLowerCase().includes('уже использовался') || errMsg.toLowerCase().includes('already used')) {
           setStatus('success');
           setMessage('Ваш email уже был подтверждён ранее!');
-        } else {
-          setStatus('error');
-          setMessage(errMsg || 'Ссылка недействительна или устарела.');
+          return;
         }
+
+        // 404 → token not found (was consumed and cleaned up, or never existed)
+        // Treat as "already confirmed" since the user likely confirmed before
+        if (httpStatus === 404) {
+          setStatus('success');
+          setMessage('Ваш email уже был подтверждён ранее!');
+          return;
+        }
+
+        handleErrorMessage(errMsg);
       }
     };
 
     confirm();
   }, [token]);
+
+  const handleErrorMessage = (errMsg: string) => {
+    if (errMsg.toLowerCase().includes('просрочен') || errMsg.toLowerCase().includes('expired')) {
+      setStatus('error');
+      setMessage('Ссылка для подтверждения устарела. Запросите новое письмо.');
+    } else {
+      setStatus('error');
+      setMessage(errMsg || 'Ссылка недействительна или устарела.');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

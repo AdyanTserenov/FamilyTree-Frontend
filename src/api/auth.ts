@@ -27,7 +27,7 @@ export const authService = {
   },
 
   confirmEmail: async (token: string): Promise<AuthApiResponse<null>> => {
-    const response = await authApi.get<AuthApiResponse<null>>(`/confirm?token=${token}`);
+    const response = await authApi.get<AuthApiResponse<null>>(`/confirm?token=${encodeURIComponent(token)}`);
     return response.data;
   },
 
