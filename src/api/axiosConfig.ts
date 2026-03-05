@@ -44,14 +44,17 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
         const isPublicPage = currentPath === '/login' || currentPath === '/register'
           || currentPath === '/confirm-email' || currentPath === '/reset-password'
           || currentPath === '/forgot-password' || currentPath.startsWith('/invite/');
-        // Don't logout on profile fetch failure — it's a background/non-critical request
+        // Don't logout on background/polling requests — they are non-critical and
+        // a 401 on them should not kick the user out (e.g. profile fetch, notification polling)
         const requestUrl = error.config?.url || '';
-        const isProfileRequest = requestUrl.includes('/profile');
-        if (!isPublicPage && !isProfileRequest) {
-          // Clear auth state via zustand store (also clears localStorage via persist)
+        const isBackgroundRequest = requestUrl.includes('/profile')
+          || requestUrl.includes('/notifications');
+        if (!isPublicPage && !isBackgroundRequest) {
+          // Clear auth state via zustand store (also clears localStorage via persist).
+          // logout() sets isAuthenticated=false → PrivateRoute re-renders and does a
+          // client-side <Navigate to="/login"> redirect. No window.location.href needed —
+          // that would cause a full page reload and destroy React state.
           useAuthStore.getState().logout();
-          const fullPath = window.location.pathname + window.location.search;
-          window.location.href = `/login?redirect=${encodeURIComponent(fullPath)}`;
         }
       }
       return Promise.reject(error);
