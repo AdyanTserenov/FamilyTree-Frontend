@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Mail, Lock, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { User, Mail, Lock, CheckCircle, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
+import { Modal } from '../components/ui/Modal';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { formatDate } from '../utils/formatDate';
 
@@ -37,7 +38,7 @@ export const ProfilePage = () => {
   const { user, setUser, logout } = useAuthStore();
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<'profile' | 'password'>('profile');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   const {
@@ -117,7 +118,7 @@ export const ProfilePage = () => {
       const err = error as { response?: { data?: { error?: string; message?: string } } };
       toast.error(err.response?.data?.error || err.response?.data?.message || 'Ошибка удаления аккаунта');
       setDeleteLoading(false);
-      setShowDeleteConfirm(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -343,46 +344,51 @@ export const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Danger zone */}
-      <div className="bg-white rounded-2xl border border-red-200 p-6 mt-6">
-        <h3 className="text-base font-semibold text-red-700 mb-2">Опасная зона</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Удаление аккаунта приведёт к безвозвратной потере всех данных. Это действие нельзя отменить.
-        </p>
-
-        {!showDeleteConfirm ? (
-          <button
-            className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
-            onClick={() => setShowDeleteConfirm(true)}
-          >
-            <Trash2 className="w-4 h-4" />
-            Удалить аккаунт
-          </button>
-        ) : (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-sm font-medium text-red-800 mb-3">
-              Вы уверены, что хотите удалить аккаунт? Все ваши данные будут безвозвратно удалены.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleteLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleteLoading ? <Spinner size="sm" /> : <Trash2 className="w-4 h-4" />}
-                Да, удалить
-              </button>
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={deleteLoading}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50"
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        )}
+      {/* Delete account button */}
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold"
+        >
+          <Trash2 className="w-4 h-4" />
+          Удалить аккаунт
+        </button>
       </div>
+
+      {/* Delete account confirmation modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => !deleteLoading && setShowDeleteModal(false)}
+        title="Удаление аккаунта"
+        size="sm"
+      >
+        <div className="flex flex-col items-center text-center gap-4">
+          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-7 h-7 text-red-600" />
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Это действие невозможно отменить. Будут удалены все ваши деревья,
+            персоны, фотографии и данные аккаунта. Восстановление невозможно.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 w-full pt-2">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleteLoading}
+              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Отмена
+            </button>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deleteLoading ? <Spinner size="sm" /> : null}
+              Да, удалить аккаунт
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
