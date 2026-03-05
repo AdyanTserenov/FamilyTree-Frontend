@@ -6,6 +6,7 @@ import { TreePine } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authService } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
+import type { User } from '../types';
 import { Spinner } from '../components/ui/Spinner';
 import { usePageTitle } from '../hooks/usePageTitle';
 
@@ -20,7 +21,7 @@ export const LoginPage = () => {
   usePageTitle('Вход');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setAuth, setUser } = useAuthStore();
+  const { setAuth } = useAuthStore();
 
   const {
     register,
@@ -36,16 +37,9 @@ export const LoginPage = () => {
       if (response.status === 'success' && response.data) {
         // Backend returns the JWT as a plain string in response.data
         const token = response.data as unknown as string;
-        // Store token immediately so axios interceptor sends it on subsequent requests
-        setAuth({ id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' }, token);
-        // Fetch full profile in background — update user data without changing token
-        authService.getProfile().then((profileResponse) => {
-          if (profileResponse.status === 'success' && profileResponse.data) {
-            setUser(profileResponse.data);
-          }
-        }).catch(() => {
-          // Profile fetch failed — user stays with minimal data, not a blocker
-        });
+        // Store minimal user + token — Layout will fetch full profile via React Query
+        const minimalUser: User = { id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' };
+        setAuth(minimalUser, token);
         const redirect = searchParams.get('redirect');
         navigate(redirect || '/dashboard');
       } else {

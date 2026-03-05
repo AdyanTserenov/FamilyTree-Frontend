@@ -44,7 +44,10 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
         const isPublicPage = currentPath === '/login' || currentPath === '/register'
           || currentPath === '/confirm-email' || currentPath === '/reset-password'
           || currentPath === '/forgot-password' || currentPath.startsWith('/invite/');
-        if (!isPublicPage) {
+        // Don't logout on profile fetch failure — it's a background/non-critical request
+        const requestUrl = error.config?.url || '';
+        const isProfileRequest = requestUrl.includes('/profile');
+        if (!isPublicPage && !isProfileRequest) {
           // Clear auth state via zustand store (also clears localStorage via persist)
           useAuthStore.getState().logout();
           const fullPath = window.location.pathname + window.location.search;
