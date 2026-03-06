@@ -22,13 +22,37 @@ export const treeApi = axios.create({
 // Zustand persist hydrates synchronously on import, so no localStorage fallback needed.
 const getToken = (): string | null => useAuthStore.getState().token;
 
-// Add JWT token to requests
+// Public auth endpoints that must NOT receive an Authorization header.
+// Sending an expired token to these endpoints causes the backend to reject
+// the request with 401 before it even checks the email/password credentials.
+const PUBLIC_ENDPOINTS = [
+  '/sign-in',
+  '/sign-up',
+  '/confirm',
+  '/forgot',
+  '/reset',
+  '/resend-verification',
+  '/ping',
+  '/invite/',
+];
+
+const isPublicEndpoint = (url: string | undefined): boolean => {
+  if (!url) return false;
+  return PUBLIC_ENDPOINTS.some((pub) => url.includes(pub));
+};
+
+// Add JWT token to requests, skipping public endpoints
 const addAuthInterceptor = (instance: typeof treeApi) => {
   instance.interceptors.request.use(
     (config) => {
-      const token = getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Never attach Authorization to public endpoints — an expired token
+      // would cause the backend to reject the request with 401 before
+      // checking credentials (sign-in) or processing the action (sign-up etc.)
+      if (!isPublicEndpoint(config.url)) {
+        const token = getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
       return config;
     },
@@ -45,13 +69,13 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
           || currentPath === '/confirm-email' || currentPath === '/reset-password'
           || currentPath === '/forgot-password' || currentPath.startsWith('/invite/');
         // Don't logout on background/polling requests — they are non-critical and
-        // a 401 on them should not kick the user out (e.g. profile fetch, notification polling)
+        // a 401 on them should not kick the user out (e.g. notification polling)
         const requestUrl = error.config?.url || '';
-        // Only treat notification polling as non-critical background requests.
-        // /profile is fetched on every page load by Layout — a 401 there means the
-        // token is definitively expired and the user must be logged out.
         const isBackgroundRequest = requestUrl.includes('/notifications');
-        if (!isPublicPage && !isBackgroundRequest) {
+        // Don't logout on public endpoint 401s — those are credential errors,
+        // not session expiry (and the token was not sent anyway after this fix)
+        const isPublic = isPublicEndpoint(requestUrl);
+        if (!isPublicPage && !isBackgroundRequest && !isPublic) {
           // Clear auth state via zustand store (also clears localStorage via persist).
           // logout() sets isAuthenticated=false → PrivateRoute re-renders and does a
           // client-side <Navigate to="/login"> redirect. No window.location.href needed —
