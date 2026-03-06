@@ -47,8 +47,10 @@ const addAuthInterceptor = (instance: typeof treeApi) => {
         // Don't logout on background/polling requests — they are non-critical and
         // a 401 on them should not kick the user out (e.g. profile fetch, notification polling)
         const requestUrl = error.config?.url || '';
-        const isBackgroundRequest = requestUrl.includes('/profile')
-          || requestUrl.includes('/notifications');
+        // Only treat notification polling as non-critical background requests.
+        // /profile is fetched on every page load by Layout — a 401 there means the
+        // token is definitively expired and the user must be logged out.
+        const isBackgroundRequest = requestUrl.includes('/notifications');
         if (!isPublicPage && !isBackgroundRequest) {
           // Clear auth state via zustand store (also clears localStorage via persist).
           // logout() sets isAuthenticated=false → PrivateRoute re-renders and does a

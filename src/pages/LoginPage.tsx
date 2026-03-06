@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,6 +10,7 @@ import { useAuthStore } from '../store/authStore';
 import type { User } from '../types';
 import { Spinner } from '../components/ui/Spinner';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { isTokenExpired } from '../utils/jwtUtils';
 
 const schema = z.object({
   email: z.string().email('Введите корректный email'),
@@ -22,6 +24,17 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
+
+  // Silently clear any expired token on mount so the user sees a clean login form
+  // without "Токен просрочен" errors. onRehydrateStorage in authStore handles the
+  // initial page load, but this covers the case where the user navigates to /login
+  // while the store is already hydrated with an expired token.
+  useEffect(() => {
+    const { token, logout } = useAuthStore.getState();
+    if (token && isTokenExpired(token)) {
+      logout();
+    }
+  }, []);
 
   const {
     register,
