@@ -13,6 +13,8 @@ import {
 } from '@xyflow/react';
 import type { Node, Edge, Connection, NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+// @ts-ignore
+import dagre from 'dagre';
 import {
   Plus,
   Users,
@@ -86,12 +88,77 @@ const PersonNode = ({ data }: NodeProps) => {
 
 const nodeTypes = { person: PersonNode };
 
+// ─── Layout helpers ───────────────────────────────────────────────────────────
+
+type LayoutMode = 'vertical' | 'horizontal' | 'radial';
+
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 80;
+
+function getLayoutedElements(
+  nodes: Node[],
+  edges: Edge[],
+  mode: LayoutMode
+): { nodes: Node[]; edges: Edge[] } {
+  if (nodes.length === 0) return { nodes, edges };
+
+  if (mode === 'radial') {
+    const centerX = 400;
+    const centerY = 400;
+    const radius = Math.max(200, nodes.length * 60);
+    const layoutedNodes = nodes.map((node, index) => {
+      if (index === 0) {
+        return { ...node, position: { x: centerX - NODE_WIDTH / 2, y: centerY - NODE_HEIGHT / 2 } };
+      }
+      const angle = ((index - 1) / (nodes.length - 1)) * 2 * Math.PI;
+      return {
+        ...node,
+        position: {
+          x: centerX + radius * Math.cos(angle) - NODE_WIDTH / 2,
+          y: centerY + radius * Math.sin(angle) - NODE_HEIGHT / 2,
+        },
+      };
+    });
+    return { nodes: layoutedNodes, edges };
+  }
+
+  // Dagre layout for vertical and horizontal
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  const direction = mode === 'horizontal' ? 'LR' : 'TB';
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 80 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - NODE_WIDTH / 2,
+        y: nodeWithPosition.y - NODE_HEIGHT / 2,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
+}
+
 export const TreePage = () => {
   const { treeId } = useParams<{ treeId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const treeIdNum = Number(treeId);
 
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
   const [addRelModalOpen, setAddRelModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
@@ -199,12 +266,12 @@ export const TreePage = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   useEffect(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
-
-  useEffect(() => {
-    setEdges(initialEdges);
-  }, [initialEdges, setEdges]);
+    if (initialNodes.length > 0 || initialEdges.length > 0) {
+      const { nodes: ln, edges: le } = getLayoutedElements(initialNodes, initialEdges, layoutMode);
+      setNodes(ln);
+      setEdges(le);
+    }
+  }, [initialNodes, initialEdges, layoutMode, setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -309,6 +376,43 @@ export const TreePage = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Layout mode buttons */}
+          <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-1 bg-white">
+            <button
+              onClick={() => setLayoutMode('vertical')}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                layoutMode === 'vertical'
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Вертикальное расположение"
+            >
+              ⬇ Верт.
+            </button>
+            <button
+              onClick={() => setLayoutMode('horizontal')}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                layoutMode === 'horizontal'
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Горизонтальное расположение"
+            >
+              ➡ Гориз.
+            </button>
+            <button
+              onClick={() => setLayoutMode('radial')}
+              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                layoutMode === 'radial'
+                  ? 'bg-green-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              title="Радиальное расположение"
+            >
+              ⭕ Радиал.
+            </button>
+          </div>
+
           {/* Search */}
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -401,6 +505,7 @@ export const TreePage = () => {
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.2 }}
+            key={layoutMode}
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
             <Controls />
