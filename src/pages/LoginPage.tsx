@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { TreePine } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '../api/auth';
 import { useAuthStore } from '../store/authStore';
 import type { User } from '../types';
@@ -24,6 +25,7 @@ export const LoginPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // Silently clear any expired token on mount so the user sees a clean login form
   // without "Токен просрочен" errors. onRehydrateStorage in authStore handles the
@@ -50,6 +52,10 @@ export const LoginPage = () => {
       if (response.status === 'success' && response.data) {
         // Backend returns the JWT as a plain string in response.data
         const token = response.data as unknown as string;
+        // Remove stale profile cache from previous user so Layout fetches fresh
+        // profile data for the new user. Without this, staleTime: Infinity in
+        // Layout's useQuery would return the previous user's cached profile.
+        queryClient.removeQueries({ queryKey: ['profile'] });
         // Store minimal user + token — Layout will fetch full profile via React Query
         const minimalUser: User = { id: 0, email: data.email, firstName: '', lastName: '', emailVerified: false, createdAt: '' };
         setAuth(minimalUser, token);
