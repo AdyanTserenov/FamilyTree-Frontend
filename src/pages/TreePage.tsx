@@ -251,10 +251,11 @@ export const TreePage = () => {
       source: String(rel.person1Id),
       target: String(rel.person2Id),
       label: rel.type === 'PARENT_CHILD' ? 'Родитель' : 'Партнёр',
-      style: {
-        stroke: rel.type === 'PARENT_CHILD' ? '#3b82f6' : '#ec4899',
-        strokeWidth: 2,
-      },
+      style: rel.type === 'PARENT_CHILD'
+        ? { stroke: '#3b82f6', strokeWidth: 2 }
+        : { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
+      animated: false,
+      type: 'default',
       labelStyle: { fontSize: 10, fill: '#6b7280' },
       labelBgStyle: { fill: '#f9fafb', fillOpacity: 0.8 },
     }));
