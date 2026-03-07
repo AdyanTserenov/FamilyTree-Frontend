@@ -27,7 +27,6 @@ import {
   Search,
   UserPlus,
   GitBranch,
-  X,
   AlignCenter,
   AlignLeft,
   CircleDot,
@@ -301,16 +300,6 @@ export const TreePage = () => {
     if (!graphData?.data) return [];
     return Array.isArray(graphData.data) ? graphData.data : [];
   }, [graphData]);
-
-  // Derive deduplicated relationships for the sidebar panel
-  const relationships = useMemo(() => {
-    const seenIds = new Set<number>();
-    return persons.flatMap((p) => p.relationships ?? []).filter((r) => {
-      if (seenIds.has(r.id)) return false;
-      seenIds.add(r.id);
-      return true;
-    });
-  }, [persons]);
 
   // nodeTypes defined with useMemo to keep a stable reference
   const nodeTypes = useMemo(() => ({
@@ -614,15 +603,6 @@ export const TreePage = () => {
     onError: () => toast.error('Ошибка добавления связи'),
   });
 
-  const deleteRelMutation = useMutation({
-    mutationFn: ({ p1, p2, type }: { p1: number; p2: number; type: RelationshipType }) =>
-      personService.deleteRelationship(treeIdNum, { person1Id: p1, person2Id: p2, type }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['graph', treeIdNum] });
-      toast.success('Связь удалена');
-    },
-    onError: () => toast.error('Ошибка удаления связи'),
-  });
 
   // Search
   const filteredPersons = searchQuery
