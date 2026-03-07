@@ -48,6 +48,19 @@ type PersonNodeData = {
   showBirthPlace: boolean;
 };
 
+// Invisible couple node — rendered as a small pink dot
+const CoupleNode = () => (
+  <div
+    style={{
+      width: 8,
+      height: 8,
+      background: '#ec4899',
+      borderRadius: '50%',
+      border: '2px solid #ec4899',
+    }}
+  />
+);
+
 // Custom person node component
 const PersonNode = ({ data }: NodeProps) => {
   const { person, onClick, showPhoto, showBirthPlace } = data as PersonNodeData;
@@ -63,6 +76,7 @@ const PersonNode = ({ data }: NodeProps) => {
       style={{ width: 140 }}
     >
       <Handle type="target" position={Position.Top} style={{ background: '#9ca3af' }} />
+      <Handle type="target" position={Position.Left} id="left" style={{ background: '#9ca3af' }} />
       <div
         className={`rounded-xl border-2 p-3 text-center shadow-sm hover:shadow-md transition-shadow bg-white ${
           isMale ? 'border-green-300' : isFemale ? 'border-pink-300' : 'border-gray-300'
@@ -97,11 +111,10 @@ const PersonNode = ({ data }: NodeProps) => {
         )}
       </div>
       <Handle type="source" position={Position.Bottom} style={{ background: '#9ca3af' }} />
+      <Handle type="source" position={Position.Right} id="right" style={{ background: '#9ca3af' }} />
     </div>
   );
 };
-
-const nodeTypes = { person: PersonNode };
 
 // ─── Layout helpers ───────────────────────────────────────────────────────────
 
@@ -118,14 +131,17 @@ function getLayoutedElements(
   if (nodes.length === 0) return { nodes, edges };
 
   if (mode === 'radial') {
+    // Separate person nodes from couple nodes
+    const personNodes = nodes.filter(n => n.type !== 'coupleNode');
+    const coupleNodesList = nodes.filter(n => n.type === 'coupleNode');
     const centerX = 400;
     const centerY = 400;
-    const radius = Math.max(200, nodes.length * 60);
-    const layoutedNodes = nodes.map((node, index) => {
+    const radius = Math.max(200, personNodes.length * 60);
+    const layoutedPersonNodes = personNodes.map((node, index) => {
       if (index === 0) {
         return { ...node, position: { x: centerX - NODE_WIDTH / 2, y: centerY - NODE_HEIGHT / 2 } };
       }
-      const angle = ((index - 1) / (nodes.length - 1)) * 2 * Math.PI;
+      const angle = ((index - 1) / (personNodes.length - 1)) * 2 * Math.PI;
       return {
         ...node,
         position: {
@@ -134,17 +150,38 @@ function getLayoutedElements(
         },
       };
     });
-    return { nodes: layoutedNodes, edges };
+    // Position couple nodes between their two partners
+    const posMap = new Map(layoutedPersonNodes.map(n => [n.id, n.position]));
+    const layoutedCoupleNodes = coupleNodesList.map(cn => {
+      const partnerEdges = edges.filter(e => e.target === cn.id);
+      if (partnerEdges.length === 2) {
+        const pos1 = posMap.get(partnerEdges[0].source);
+        const pos2 = posMap.get(partnerEdges[1].source);
+        if (pos1 && pos2) {
+          return {
+            ...cn,
+            position: {
+              x: (pos1.x + pos2.x) / 2 + NODE_WIDTH / 2 - 4,
+              y: (pos1.y + pos2.y) / 2 + NODE_HEIGHT / 2 - 4,
+            },
+          };
+        }
+      }
+      return cn;
+    });
+    return { nodes: [...layoutedPersonNodes, ...layoutedCoupleNodes], edges };
   }
 
   // Dagre layout for vertical and horizontal
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   const direction = mode === 'horizontal' ? 'LR' : 'TB';
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 80 });
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 });
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    const w = node.type === 'coupleNode' ? 8 : NODE_WIDTH;
+    const h = node.type === 'coupleNode' ? 8 : NODE_HEIGHT;
+    dagreGraph.setNode(node.id, { width: w, height: h });
   });
 
   edges.forEach((edge) => {
@@ -155,16 +192,40 @@ function getLayoutedElements(
 
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
+    if (!nodeWithPosition) return node;
+    const w = node.type === 'coupleNode' ? 8 : NODE_WIDTH;
+    const h = node.type === 'coupleNode' ? 8 : NODE_HEIGHT;
     return {
       ...node,
       position: {
-        x: nodeWithPosition.x - NODE_WIDTH / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
+        x: nodeWithPosition.x - w / 2,
+        y: nodeWithPosition.y - h / 2,
       },
     };
   });
 
-  return { nodes: layoutedNodes, edges };
+  // Post-process: center couple nodes between their two partners
+  const posMap = new Map(layoutedNodes.map(n => [n.id, n.position]));
+  const finalNodes = layoutedNodes.map(node => {
+    if (node.type !== 'coupleNode') return node;
+    const partnerEdges = edges.filter(e => e.target === node.id);
+    if (partnerEdges.length === 2) {
+      const pos1 = posMap.get(partnerEdges[0].source);
+      const pos2 = posMap.get(partnerEdges[1].source);
+      if (pos1 && pos2) {
+        return {
+          ...node,
+          position: {
+            x: (pos1.x + pos2.x) / 2 + NODE_WIDTH / 2 - 4,
+            y: Math.min(pos1.y, pos2.y) + NODE_HEIGHT / 2 - 4,
+          },
+        };
+      }
+    }
+    return node;
+  });
+
+  return { nodes: finalNodes, edges };
 }
 
 export const TreePage = () => {
@@ -231,53 +292,139 @@ export const TreePage = () => {
     [navigate, treeIdNum]
   );
 
-  // Build React Flow nodes and edges
-  // Derive persons/relationships directly from graphData inside useMemo so that
-  // the stable React Query cache reference is used as the dependency, avoiding
-  // stale-closure issues caused by `?? []` creating new array references each render.
-  const { initialNodes, initialEdges, persons, relationships } = useMemo(() => {
-    const COLS = 4;
-    const H_GAP = 200;
-    const V_GAP = 160;
+  // Derive persons for use in search, modals, and sidebar
+  const persons = useMemo<Person[]>(() => {
+    if (!graphData?.data) return [];
+    return Array.isArray(graphData.data) ? graphData.data : [];
+  }, [graphData]);
 
-    // The graph endpoint returns ApiResponse<Person[]> — a flat array of persons,
-    // each carrying their own embedded relationships list.
-    // Extract persons directly from graphData.data (the array itself).
-    const persons: Person[] = Array.isArray(graphData?.data) ? graphData.data : [];
-
-    // Flatten and deduplicate relationships from all persons' embedded .relationships arrays.
+  // Derive deduplicated relationships for the sidebar panel
+  const relationships = useMemo(() => {
     const seenIds = new Set<number>();
-    const relationships = persons.flatMap((p) => p.relationships ?? []).filter((r) => {
+    return persons.flatMap((p) => p.relationships ?? []).filter((r) => {
+      if (seenIds.has(r.id)) return false;
+      seenIds.add(r.id);
+      return true;
+    });
+  }, [persons]);
+
+  // nodeTypes defined with useMemo to keep a stable reference
+  const nodeTypes = useMemo(() => ({
+    personNode: PersonNode,
+    coupleNode: CoupleNode,
+  }), []);
+
+  // Build React Flow nodes and edges using the couple node pattern
+  const { initialNodes, initialEdges } = useMemo(() => {
+    if (!graphData?.data) return { initialNodes: [], initialEdges: [] };
+
+    const personsList: Person[] = Array.isArray(graphData.data) ? graphData.data : [];
+
+    // Deduplicate relationships across all persons
+    const seenIds = new Set<number>();
+    const allRels = personsList.flatMap((p) => p.relationships ?? []).filter((r) => {
       if (seenIds.has(r.id)) return false;
       seenIds.add(r.id);
       return true;
     });
 
-    const initialNodes: Node[] = persons.map((person, index) => ({
-      id: String(person.id),
-      type: 'person',
-      position: {
-        x: (index % COLS) * H_GAP,
-        y: Math.floor(index / COLS) * V_GAP,
-      },
-      data: { person, onClick: handlePersonClick, showPhoto: true, showBirthPlace: false } as PersonNodeData,
-    }));
+    const partnerships = allRels.filter(r => r.type === 'PARTNERSHIP');
+    const parentChildRels = allRels.filter(r => r.type === 'PARENT_CHILD');
 
-    const initialEdges: Edge[] = relationships.map((rel) => ({
-      id: `edge-${rel.id}`,
-      source: String(rel.person1Id),
-      target: String(rel.person2Id),
-      label: rel.type === 'PARENT_CHILD' ? 'Родитель' : 'Партнёр',
-      style: rel.type === 'PARENT_CHILD'
-        ? { stroke: '#3b82f6', strokeWidth: 2 }
-        : { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
-      animated: false,
-      type: 'default',
-      labelStyle: { fontSize: 10, fill: '#6b7280' },
-      labelBgStyle: { fill: '#f9fafb', fillOpacity: 0.8 },
-    }));
+    // Build couple nodes and their edges
+    const coupleNodes: Node[] = [];
+    const coupleEdges: Edge[] = [];
+    // Map from "minId-maxId" to coupleNodeId
+    const coupleNodeMap = new Map<string, string>();
 
-    return { initialNodes, initialEdges, persons, relationships };
+    for (const rel of partnerships) {
+      const a = Math.min(rel.person1Id, rel.person2Id);
+      const b = Math.max(rel.person1Id, rel.person2Id);
+      const coupleKey = `${a}-${b}`;
+      const coupleId = `couple-${coupleKey}`;
+      coupleNodeMap.set(coupleKey, coupleId);
+
+      coupleNodes.push({
+        id: coupleId,
+        type: 'coupleNode',
+        data: {},
+        position: { x: 0, y: 0 },
+        style: { width: 8, height: 8 },
+      });
+
+      // Edge from person A (person1Id) to couple node
+      coupleEdges.push({
+        id: `edge-couple-${rel.person1Id}-${coupleId}`,
+        source: String(rel.person1Id),
+        target: coupleId,
+        style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
+        type: 'straight',
+        animated: false,
+        label: 'Партнёр',
+        labelStyle: { fontSize: 10, fill: '#ec4899' },
+      });
+
+      // Edge from person B (person2Id) to couple node
+      coupleEdges.push({
+        id: `edge-couple-${rel.person2Id}-${coupleId}`,
+        source: String(rel.person2Id),
+        target: coupleId,
+        style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
+        type: 'straight',
+        animated: false,
+      });
+    }
+
+    // For PARENT_CHILD: route through couple node if parent has a partner
+    const childEdges: Edge[] = [];
+    for (const rel of parentChildRels) {
+      const parentId = rel.person1Id;
+      const childId = rel.person2Id;
+
+      // Find if this parent has a partnership
+      const partnerRel = partnerships.find(
+        p => p.person1Id === parentId || p.person2Id === parentId
+      );
+
+      let sourceId: string;
+      if (partnerRel) {
+        const a = Math.min(partnerRel.person1Id, partnerRel.person2Id);
+        const b = Math.max(partnerRel.person1Id, partnerRel.person2Id);
+        const coupleKey = `${a}-${b}`;
+        sourceId = coupleNodeMap.get(coupleKey) ?? String(parentId);
+      } else {
+        sourceId = String(parentId);
+      }
+
+      childEdges.push({
+        id: `edge-${rel.id}`,
+        source: sourceId,
+        target: String(childId),
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+        type: 'default',
+        animated: false,
+      });
+    }
+
+    // Person nodes
+    const initialNodes: Node[] = [
+      ...personsList.map((person) => ({
+        id: String(person.id),
+        type: 'personNode',
+        data: {
+          person,
+          onClick: handlePersonClick,
+          showPhoto: true,
+          showBirthPlace: false,
+        } as PersonNodeData,
+        position: { x: 0, y: 0 },
+      })),
+      ...coupleNodes,
+    ];
+
+    const initialEdges: Edge[] = [...coupleEdges, ...childEdges];
+
+    return { initialNodes, initialEdges };
   }, [graphData, handlePersonClick]);
 
   // Filter persons based on active filters
@@ -310,22 +457,38 @@ export const TreePage = () => {
     return result;
   }, [persons, filters]);
 
-  // Build filtered nodes/edges from filtered persons, also applying display settings
+  // Build filtered nodes/edges, passing through couple nodes whose both partners pass the filter
   const { filteredNodes, filteredEdges } = useMemo(() => {
-    const allowedIds = new Set(filteredPersonsForGraph.map(p => String(p.id)));
-    const filteredNodes: Node[] = initialNodes
-      .filter(n => allowedIds.has(n.id))
-      .map(n => ({
+    const allowedPersonIds = new Set(filteredPersonsForGraph.map(p => String(p.id)));
+
+    // Keep person nodes that pass filter + couple nodes whose BOTH partners pass filter
+    const preFilteredNodes = initialNodes.filter(n => {
+      if (n.type === 'coupleNode') {
+        const partnerEdges = initialEdges.filter(e => e.target === n.id);
+        return partnerEdges.every(e => allowedPersonIds.has(e.source));
+      }
+      return allowedPersonIds.has(n.id);
+    });
+
+    const allowedNodeIds = new Set(preFilteredNodes.map(n => n.id));
+
+    const filteredEdges = initialEdges.filter(
+      e => allowedNodeIds.has(e.source) && allowedNodeIds.has(e.target)
+    );
+
+    // Inject showPhoto/showBirthPlace into person nodes
+    const filteredNodes = preFilteredNodes.map(n => {
+      if (n.type !== 'personNode') return n;
+      return {
         ...n,
         data: {
           ...(n.data as PersonNodeData),
           showPhoto: filters.showPhotos,
           showBirthPlace: filters.showBirthPlace,
         } as PersonNodeData,
-      }));
-    const filteredEdges: Edge[] = initialEdges.filter(
-      e => allowedIds.has(e.source) && allowedIds.has(e.target)
-    );
+      };
+    });
+
     return { filteredNodes, filteredEdges };
   }, [initialNodes, initialEdges, filteredPersonsForGraph, filters.showPhotos, filters.showBirthPlace]);
 
@@ -660,7 +823,9 @@ export const TreePage = () => {
             <Controls />
             <MiniMap
               nodeColor={(node) => {
+                if (node.type === 'coupleNode') return '#ec4899';
                 const person = (node.data as PersonNodeData).person;
+                if (!person) return '#d1d5db';
                 return person.gender === 'MALE'
                   ? '#93c5fd'
                   : person.gender === 'FEMALE'
