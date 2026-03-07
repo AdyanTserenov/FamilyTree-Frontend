@@ -26,8 +26,13 @@ import {
   ArrowLeft,
   Search,
   UserPlus,
-  GitMerge,
+  GitBranch,
   X,
+  AlignCenter,
+  AlignLeft,
+  CircleDot,
+  Download,
+  ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { personService, treeService } from '../api/trees';
@@ -117,7 +122,7 @@ const PersonNode = ({ data }: NodeProps) => {
 
 // ─── Layout helpers ───────────────────────────────────────────────────────────
 
-type LayoutMode = 'vertical' | 'horizontal' | 'radial';
+type LayoutMode = 'TB' | 'LR' | 'radial';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 80;
@@ -174,7 +179,7 @@ function getLayoutedElements(
   // Dagre layout for vertical and horizontal
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  const direction = mode === 'horizontal' ? 'LR' : 'TB';
+  const direction = mode === 'LR' ? 'LR' : 'TB';
   dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 });
 
   nodes.forEach((node) => {
@@ -233,7 +238,7 @@ export const TreePage = () => {
   const queryClient = useQueryClient();
   const treeIdNum = Number(treeId);
 
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('TB');
   const [filters, setFilters] = useState<TreeFilters>(defaultFilters);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
@@ -657,40 +662,43 @@ export const TreePage = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Layout mode buttons */}
-          <div className="flex items-center gap-1 border border-gray-200 rounded-lg p-1 bg-white">
+          {/* Layout mode group */}
+          <div className="flex border border-gray-200 rounded-md overflow-hidden">
             <button
-              onClick={() => setLayoutMode('vertical')}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                layoutMode === 'vertical'
-                  ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+              onClick={() => setLayoutMode('TB')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+                layoutMode === 'TB'
+                  ? 'text-gray-700 bg-gray-100 border-r border-gray-200'
+                  : 'text-gray-600 bg-white hover:bg-gray-50 border-r border-gray-200'
               }`}
-              title="Вертикальное расположение"
+              title="Вертикальное дерево"
             >
-              ⬇ Верт.
+              <AlignCenter className="w-4 h-4" />
+              <span>Верт.</span>
             </button>
             <button
-              onClick={() => setLayoutMode('horizontal')}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                layoutMode === 'horizontal'
-                  ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+              onClick={() => setLayoutMode('LR')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
+                layoutMode === 'LR'
+                  ? 'text-gray-700 bg-gray-100 border-r border-gray-200'
+                  : 'text-gray-600 bg-white hover:bg-gray-50 border-r border-gray-200'
               }`}
-              title="Горизонтальное расположение"
+              title="Горизонтальное дерево"
             >
-              ➡ Гориз.
+              <AlignLeft className="w-4 h-4" />
+              <span>Гориз.</span>
             </button>
             <button
               onClick={() => setLayoutMode('radial')}
-              className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
                 layoutMode === 'radial'
-                  ? 'bg-green-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'text-gray-700 bg-gray-100'
+                  : 'text-gray-600 bg-white hover:bg-gray-50'
               }`}
-              title="Радиальное расположение"
+              title="Радиальное дерево"
             >
-              ⭕ Радиал.
+              <CircleDot className="w-4 h-4" />
+              <span>Радиал.</span>
             </button>
           </div>
 
@@ -736,11 +744,11 @@ export const TreePage = () => {
           <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setExportMenuOpen(!exportMenuOpen)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
             >
-              <span>📤</span>
+              <Download className="w-4 h-4 text-gray-500" />
               <span>Экспорт</span>
-              <span className="text-xs">▼</span>
+              <ChevronDown className="w-3 h-3 text-gray-400" />
             </button>
             {exportMenuOpen && (
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[160px] overflow-hidden">
@@ -766,9 +774,9 @@ export const TreePage = () => {
             <>
               <button
                 onClick={() => setAddRelModalOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
               >
-                <GitMerge className="w-4 h-4" />
+                <GitBranch className="w-4 h-4 text-gray-500" />
                 <span className="hidden sm:inline">Связь</span>
               </button>
               <button
