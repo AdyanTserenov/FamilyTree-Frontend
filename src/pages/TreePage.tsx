@@ -137,8 +137,6 @@ export const TreePage = () => {
     enabled: !!treeIdNum,
   });
 
-  const persons = graphData?.data?.persons ?? [];
-  const relationships = graphData?.data?.relationships ?? [];
   const members: TreeMember[] = membersData?.data ?? [];
 
   // Navigate to person on node click
@@ -150,10 +148,16 @@ export const TreePage = () => {
   );
 
   // Build React Flow nodes and edges
-  const { initialNodes, initialEdges } = useMemo(() => {
+  // Derive persons/relationships directly from graphData inside useMemo so that
+  // the stable React Query cache reference is used as the dependency, avoiding
+  // stale-closure issues caused by `?? []` creating new array references each render.
+  const { initialNodes, initialEdges, persons, relationships } = useMemo(() => {
     const COLS = 4;
     const H_GAP = 200;
     const V_GAP = 160;
+
+    const persons = graphData?.data?.persons ?? [];
+    const relationships = graphData?.data?.relationships ?? [];
 
     const initialNodes: Node[] = persons.map((person, index) => ({
       id: String(person.id),
@@ -178,8 +182,8 @@ export const TreePage = () => {
       labelBgStyle: { fill: '#f9fafb', fillOpacity: 0.8 },
     }));
 
-    return { initialNodes, initialEdges };
-  }, [persons, relationships, handlePersonClick]);
+    return { initialNodes, initialEdges, persons, relationships };
+  }, [graphData, handlePersonClick]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
