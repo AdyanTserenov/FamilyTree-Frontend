@@ -120,7 +120,20 @@ export const DashboardPage = () => {
   const handleCopyLink = async () => {
     if (!inviteLink) return;
     try {
-      await navigator.clipboard.writeText(inviteLink);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteLink);
+      } else {
+        // Fallback for HTTP (non-secure) contexts
+        const textarea = document.createElement('textarea');
+        textarea.value = inviteLink;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
       setLinkCopied(true);
       toast.success('Ссылка скопирована!');
       setTimeout(() => setLinkCopied(false), 2000);
