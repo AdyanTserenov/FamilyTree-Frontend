@@ -63,7 +63,9 @@ export interface Tree {
   name: string;
   role: TreeRole;
   createdAt: string;
+  updatedAt?: string;
   memberCount?: number;
+  personCount?: number;
 }
 
 export interface TreeMember {

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, TreePine, Users, Trash2, Edit2, MoreVertical, Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -18,6 +18,17 @@ export const DashboardPage = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
+  // ── URL params ──────────────────────────────────────────────────────────────
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') || 'all') as 'mine' | 'shared' | 'all';
+  const sortBy = (searchParams.get('sort') || 'date') as 'date' | 'name' | 'persons';
+
+  const setTab = (tab: string) =>
+    setSearchParams(prev => { prev.set('tab', tab); return prev; });
+  const setSort = (sort: string) =>
+    setSearchParams(prev => { prev.set('sort', sort); return prev; });
+
+  // ── Modal state ─────────────────────────────────────────────────────────────
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -31,6 +42,7 @@ export const DashboardPage = () => {
   const [linkCopied, setLinkCopied] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
+  // ── Data fetching ────────────────────────────────────────────────────────────
   const { data, isLoading } = useQuery({
     queryKey: ['trees'],
     queryFn: () => treeService.getTrees(),
@@ -38,6 +50,32 @@ export const DashboardPage = () => {
 
   const trees = data?.data ?? [];
 
+  // ── Filtered trees per tab ───────────────────────────────────────────────────
+  const myTrees = useMemo(() => trees.filter(t => t.role === 'OWNER'), [trees]);
+  const sharedTrees = useMemo(
+    () => trees.filter(t => t.role === 'EDITOR' || t.role === 'VIEWER'),
+    [trees]
+  );
+  const allTrees = trees;
+
+  const tabTrees =
+    activeTab === 'mine' ? myTrees : activeTab === 'shared' ? sharedTrees : allTrees;
+
+  // ── Sorted trees ─────────────────────────────────────────────────────────────
+  const sortedTrees = useMemo(() => {
+    const arr = [...tabTrees];
+    if (sortBy === 'name') return arr.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    if (sortBy === 'persons')
+      return arr.sort((a, b) => (b.personCount ?? 0) - (a.personCount ?? 0));
+    // default: date — sort by updatedAt desc, fallback to id desc
+    return arr.sort((a, b) => {
+      const da = a.updatedAt ?? a.createdAt;
+      const db = b.updatedAt ?? b.createdAt;
+      return db.localeCompare(da) || b.id - a.id;
+    });
+  }, [tabTrees, sortBy]);
+
+  // ── Mutations ────────────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: (name: string) => treeService.createTree(name),
     onSuccess: () => {
@@ -92,6 +130,7 @@ export const DashboardPage = () => {
     onError: () => toast.error('Ошибка получения ссылки'),
   });
 
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleCreateTree = () => {
     if (!newTreeName.trim()) return;
     createMutation.mutate(newTreeName.trim());
@@ -123,7 +162,6 @@ export const DashboardPage = () => {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(inviteLink);
       } else {
-        // Fallback for HTTP (non-secure) contexts
         const textarea = document.createElement('textarea');
         textarea.value = inviteLink;
         textarea.style.position = 'fixed';
@@ -169,10 +207,17 @@ export const DashboardPage = () => {
     VIEWER: 'default',
   };
 
+  // ── Tab definitions ───────────────────────────────────────────────────────────
+  const tabs = [
+    { key: 'all', label: 'Все', count: allTrees.length },
+    { key: 'mine', label: 'Мои', count: myTrees.length },
+    { key: 'shared', label: 'Совместные', count: sharedTrees.length },
+  ];
+
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Мои деревья</h1>
           <p className="text-gray-600 mt-1">Добро пожаловать, {user?.firstName}!</p>
@@ -186,29 +231,65 @@ export const DashboardPage = () => {
         </button>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-gray-200 mb-4">
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setTab(tab.key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === tab.key
+                ? 'border-green-600 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label} ({tab.count})
+          </button>
+        ))}
+      </div>
+
+      {/* Sort control */}
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-sm text-gray-500">Сортировка:</span>
+        <select
+          value={sortBy}
+          onChange={e => setSort(e.target.value)}
+          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+        >
+          <option value="date">По дате изменения</option>
+          <option value="name">По названию</option>
+          <option value="persons">По количеству персон</option>
+        </select>
+      </div>
+
       {/* Trees grid */}
       {isLoading ? (
         <div className="flex justify-center py-20">
           <Spinner size="lg" />
         </div>
-      ) : trees.length === 0 ? (
+      ) : sortedTrees.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TreePine className="w-10 h-10 text-green-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Нет семейных деревьев</h2>
-          <p className="text-gray-600 mb-6">Создайте первое дерево, чтобы начать</p>
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            Создать дерево
-          </button>
+          <div className="text-6xl mb-4">🌳</div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            У вас пока нет семейных деревьев
+          </h2>
+          <p className="text-gray-500 mb-6">
+            {activeTab === 'shared'
+              ? 'Вас ещё не пригласили ни в одно дерево'
+              : 'Создайте своё первое семейное дерево'}
+          </p>
+          {activeTab !== 'shared' && (
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="bg-green-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-green-700 transition-colors"
+            >
+              Создать первое дерево
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {trees.map((tree) => (
+          {sortedTrees.map((tree) => (
             <div
               key={tree.id}
               className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow relative"
