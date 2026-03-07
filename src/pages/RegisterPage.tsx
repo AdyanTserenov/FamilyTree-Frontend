@@ -12,7 +12,7 @@ const schema = z.object({
   firstName: z.string().min(1, 'Введите имя'),
   lastName: z.string().min(1, 'Введите фамилию'),
   middleName: z.string().optional(),
-  email: z.string().email('Введите корректный email'),
+  email: z.string().email('Некорректный формат email'),
   password: z.string().min(8, 'Пароль должен содержать минимум 8 символов'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {

@@ -14,7 +14,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { isTokenExpired } from '../utils/jwtUtils';
 
 const schema = z.object({
-  email: z.string().email('Введите корректный email'),
+  email: z.string().email('Некорректный формат email'),
   password: z.string().min(1, 'Введите пароль'),
 });
 
