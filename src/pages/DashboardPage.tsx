@@ -119,9 +119,14 @@ export const DashboardPage = () => {
 
   const handleCopyLink = async () => {
     if (!inviteLink) return;
-    await navigator.clipboard.writeText(inviteLink);
-    setLinkCopied(true);
-    setTimeout(() => setLinkCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setLinkCopied(true);
+      toast.success('Ссылка скопирована!');
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
   };
 
   const openEditModal = (tree: Tree) => {
