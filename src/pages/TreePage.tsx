@@ -9,7 +9,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -633,7 +632,7 @@ export const TreePage = () => {
     'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
   return (
-    <div className="-mx-4 sm:-mx-6 lg:-mx-8 -my-8">
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8 -my-8" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Top bar */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -785,7 +784,7 @@ export const TreePage = () => {
       </div>
 
       {/* Graph */}
-      <div style={{ height: 'calc(100vh - 64px)' }} className="relative w-full">
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} className="w-full">
         {graphLoading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="lg" />
@@ -818,22 +817,10 @@ export const TreePage = () => {
             fitView
             fitViewOptions={{ padding: 0.2 }}
             key={layoutMode}
+            style={{ width: '100%', height: '100%' }}
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
             <Controls />
-            <MiniMap
-              nodeColor={(node) => {
-                if (node.type === 'coupleNode') return '#ec4899';
-                const person = (node.data as PersonNodeData).person;
-                if (!person) return '#d1d5db';
-                return person.gender === 'MALE'
-                  ? '#93c5fd'
-                  : person.gender === 'FEMALE'
-                  ? '#f9a8d4'
-                  : '#d1d5db';
-              }}
-              style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}
-            />
           </ReactFlow>
         )}
         <TreeFiltersPanel filters={filters} onChange={setFilters} />
@@ -1097,46 +1084,6 @@ export const TreePage = () => {
         </div>
       </Modal>
 
-      {/* Relationships list panel */}
-      {relationships.length > 0 && canEditTree && (
-        <div className="fixed bottom-4 right-4 z-10">
-          <details className="bg-white border border-gray-200 rounded-xl shadow-lg">
-            <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-gray-700 flex items-center gap-2">
-              <GitMerge className="w-4 h-4" />
-              Связи ({relationships.length})
-            </summary>
-            <div className="max-h-48 overflow-y-auto px-4 pb-3 space-y-2">
-              {relationships.map((rel) => {
-                const p1 = persons.find((p) => p.id === rel.person1Id);
-                const p2 = persons.find((p) => p.id === rel.person2Id);
-                return (
-                  <div key={rel.id} className="flex items-center justify-between gap-3 text-sm">
-                    <span className="text-gray-700">
-                      {p1?.firstName} {p1?.lastName}
-                      <span className="text-gray-400 mx-1">
-                        {rel.type === 'PARENT_CHILD' ? '→' : '↔'}
-                      </span>
-                      {p2?.firstName} {p2?.lastName}
-                    </span>
-                    <button
-                      onClick={() =>
-                        deleteRelMutation.mutate({
-                          p1: rel.person1Id,
-                          p2: rel.person2Id,
-                          type: rel.type,
-                        })
-                      }
-                      className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </details>
-        </div>
-      )}
     </div>
   );
 };
