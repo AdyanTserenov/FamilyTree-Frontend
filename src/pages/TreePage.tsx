@@ -1,4 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { TreeFiltersPanel, defaultFilters } from '../components/TreeFiltersPanel';
+import type { TreeFilters } from '../components/TreeFiltersPanel';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -40,11 +42,13 @@ import type { Person, RelationshipType, TreeRole, TreeMember } from '../types';
 type PersonNodeData = {
   person: Person;
   onClick: (p: Person) => void;
+  showPhoto: boolean;
+  showBirthPlace: boolean;
 };
 
 // Custom person node component
 const PersonNode = ({ data }: NodeProps) => {
-  const { person, onClick } = data as PersonNodeData;
+  const { person, onClick, showPhoto, showBirthPlace } = data as PersonNodeData;
   const fullName = [person.firstName, person.lastName].filter(Boolean).join(' ');
   const initials = [person.firstName?.[0], person.lastName?.[0]].filter(Boolean).join('');
   const isMale = person.gender === 'MALE';
@@ -62,13 +66,13 @@ const PersonNode = ({ data }: NodeProps) => {
           isMale ? 'border-green-300' : isFemale ? 'border-pink-300' : 'border-gray-300'
         }`}
       >
-        {person.avatarUrl ? (
+        {showPhoto && person.avatarUrl ? (
           <img
             src={person.avatarUrl}
             alt={fullName}
             className="w-12 h-12 rounded-full mx-auto mb-2 object-cover"
           />
-        ) : (
+        ) : showPhoto ? (
           <div
             className={`w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-semibold text-sm ${
               isMale ? 'bg-green-500' : isFemale ? 'bg-pink-500' : 'bg-gray-500'
@@ -76,12 +80,17 @@ const PersonNode = ({ data }: NodeProps) => {
           >
             {initials || '?'}
           </div>
-        )}
+        ) : null}
         <p className="text-xs font-semibold text-gray-900 leading-tight truncate">{fullName}</p>
         {person.birthDate && (
           <p className="text-xs text-gray-500 mt-0.5">
             {new Date(person.birthDate).getFullYear()}
             {person.deathDate ? ` – ${new Date(person.deathDate).getFullYear()}` : ''}
+          </p>
+        )}
+        {showBirthPlace && person.birthPlace && (
+          <p className="text-xs text-gray-400 mt-0.5 truncate" title={person.birthPlace}>
+            📍 {person.birthPlace}
           </p>
         )}
       </div>
@@ -163,6 +172,7 @@ export const TreePage = () => {
   const treeIdNum = Number(treeId);
 
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
+  const [filters, setFilters] = useState<TreeFilters>(defaultFilters);
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
   const [addRelModalOpen, setAddRelModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
@@ -247,7 +257,7 @@ export const TreePage = () => {
         x: (index % COLS) * H_GAP,
         y: Math.floor(index / COLS) * V_GAP,
       },
-      data: { person, onClick: handlePersonClick } as PersonNodeData,
+      data: { person, onClick: handlePersonClick, showPhoto: true, showBirthPlace: false } as PersonNodeData,
     }));
 
     const initialEdges: Edge[] = relationships.map((rel) => ({
@@ -267,16 +277,68 @@ export const TreePage = () => {
     return { initialNodes, initialEdges, persons, relationships };
   }, [graphData, handlePersonClick]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  // Filter persons based on active filters
+  const filteredPersonsForGraph = useMemo(() => {
+    let result = persons;
+
+    // Gender filter
+    if (filters.gender !== 'all') {
+      result = result.filter(p => p.gender === filters.gender);
+    }
+
+    // Birth year filters
+    if (filters.bornAfter) {
+      const year = parseInt(filters.bornAfter);
+      result = result.filter(p => {
+        if (!p.birthDate) return true;
+        const birthYear = new Date(p.birthDate).getFullYear();
+        return birthYear >= year;
+      });
+    }
+    if (filters.bornBefore) {
+      const year = parseInt(filters.bornBefore);
+      result = result.filter(p => {
+        if (!p.birthDate) return true;
+        const birthYear = new Date(p.birthDate).getFullYear();
+        return birthYear <= year;
+      });
+    }
+
+    return result;
+  }, [persons, filters]);
+
+  // Build filtered nodes/edges from filtered persons, also applying display settings
+  const { filteredNodes, filteredEdges } = useMemo(() => {
+    const allowedIds = new Set(filteredPersonsForGraph.map(p => String(p.id)));
+    const filteredNodes: Node[] = initialNodes
+      .filter(n => allowedIds.has(n.id))
+      .map(n => ({
+        ...n,
+        data: {
+          ...(n.data as PersonNodeData),
+          showPhoto: filters.showPhotos,
+          showBirthPlace: filters.showBirthPlace,
+        } as PersonNodeData,
+      }));
+    const filteredEdges: Edge[] = initialEdges.filter(
+      e => allowedIds.has(e.source) && allowedIds.has(e.target)
+    );
+    return { filteredNodes, filteredEdges };
+  }, [initialNodes, initialEdges, filteredPersonsForGraph, filters.showPhotos, filters.showBirthPlace]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(filteredNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(filteredEdges);
 
   useEffect(() => {
-    if (initialNodes.length > 0 || initialEdges.length > 0) {
-      const { nodes: ln, edges: le } = getLayoutedElements(initialNodes, initialEdges, layoutMode);
+    if (filteredNodes.length > 0 || filteredEdges.length > 0) {
+      const { nodes: ln, edges: le } = getLayoutedElements(filteredNodes, filteredEdges, layoutMode);
       setNodes(ln);
       setEdges(le);
+    } else if (persons.length === 0) {
+      setNodes([]);
+      setEdges([]);
     }
-  }, [initialNodes, initialEdges, layoutMode, setNodes, setEdges]);
+  }, [filteredNodes, filteredEdges, layoutMode, setNodes, setEdges, persons.length]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -478,7 +540,7 @@ export const TreePage = () => {
       </div>
 
       {/* Graph */}
-      <div style={{ height: 'calc(100vh - 64px)' }} className="w-full">
+      <div style={{ height: 'calc(100vh - 64px)' }} className="relative w-full">
         {graphLoading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="lg" />
@@ -527,6 +589,7 @@ export const TreePage = () => {
             />
           </ReactFlow>
         )}
+        <TreeFiltersPanel filters={filters} onChange={setFilters} />
       </div>
 
       {/* Add Person Modal */}
