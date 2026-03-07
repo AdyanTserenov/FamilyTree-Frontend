@@ -10,6 +10,8 @@ import {
   useEdgesState,
   addEdge,
   BackgroundVariant,
+  Handle,
+  Position,
 } from '@xyflow/react';
 import type { Node, Edge, Connection, NodeProps } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -54,6 +56,7 @@ const PersonNode = ({ data }: NodeProps) => {
       className="cursor-pointer select-none"
       style={{ width: 140 }}
     >
+      <Handle type="target" position={Position.Top} style={{ background: '#9ca3af' }} />
       <div
         className={`rounded-xl border-2 p-3 text-center shadow-sm hover:shadow-md transition-shadow bg-white ${
           isMale ? 'border-green-300' : isFemale ? 'border-pink-300' : 'border-gray-300'
@@ -82,6 +85,7 @@ const PersonNode = ({ data }: NodeProps) => {
           </p>
         )}
       </div>
+      <Handle type="source" position={Position.Bottom} style={{ background: '#9ca3af' }} />
     </div>
   );
 };
