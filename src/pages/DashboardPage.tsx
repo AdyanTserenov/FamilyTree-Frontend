@@ -50,6 +50,11 @@ export const DashboardPage = () => {
 
   const trees = data?.data ?? [];
 
+  // Keep selectedTree in sync with latest query data (e.g. after publicLinkToken changes)
+  const currentSelectedTree = selectedTree
+    ? (trees.find(t => t.id === selectedTree.id) ?? selectedTree)
+    : null;
+
   // ── Filtered trees per tab ───────────────────────────────────────────────────
   const myTrees = useMemo(() => trees.filter(t => t.role === 'OWNER'), [trees]);
   const sharedTrees = useMemo(
@@ -130,6 +135,24 @@ export const DashboardPage = () => {
     onError: () => toast.error('Ошибка получения ссылки'),
   });
 
+  const generatePublicLinkMutation = useMutation({
+    mutationFn: (treeId: number) => treeService.generatePublicLink(treeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trees'] });
+      toast.success('Публичная ссылка создана');
+    },
+    onError: () => toast.error('Ошибка создания публичной ссылки'),
+  });
+
+  const revokePublicLinkMutation = useMutation({
+    mutationFn: (treeId: number) => treeService.revokePublicLink(treeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trees'] });
+      toast.success('Публичная ссылка отключена');
+    },
+    onError: () => toast.error('Ошибка отключения публичной ссылки'),
+  });
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleCreateTree = () => {
     if (!newTreeName.trim()) return;
@@ -175,6 +198,50 @@ export const DashboardPage = () => {
       setLinkCopied(true);
       toast.success('Ссылка скопирована!');
       setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
+  };
+
+  const handleGeneratePublicLink = () => {
+    if (!selectedTree) return;
+    generatePublicLinkMutation.mutate(selectedTree.id);
+  };
+
+  const handleRevokePublicLink = () => {
+    if (!selectedTree) return;
+    revokePublicLinkMutation.mutate(selectedTree.id);
+  };
+
+  const handleRegeneratePublicLink = async () => {
+    if (!selectedTree) return;
+    try {
+      await treeService.revokePublicLink(selectedTree.id);
+      await treeService.generatePublicLink(selectedTree.id);
+      queryClient.invalidateQueries({ queryKey: ['trees'] });
+      toast.success('Новая ссылка создана');
+    } catch {
+      toast.error('Ошибка создания новой ссылки');
+    }
+  };
+
+  const handleCopyPublicLink = async (token: string) => {
+    const url = `${window.location.origin}/public/tree/${token}`;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      toast.success('Ссылка скопирована!');
     } catch {
       toast.error('Не удалось скопировать ссылку');
     }
@@ -520,6 +587,52 @@ export const DashboardPage = () => {
               </button>
             )}
           </div>
+
+          {/* Public link section — only for OWNER */}
+          {currentSelectedTree?.role === 'OWNER' && (
+            <div className="border-t border-gray-100 pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Публичная ссылка</h3>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-600">Доступ по ссылке (без авторизации)</span>
+                <button
+                  onClick={currentSelectedTree?.publicLinkToken ? handleRevokePublicLink : handleGeneratePublicLink}
+                  disabled={generatePublicLinkMutation.isPending || revokePublicLinkMutation.isPending}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+                    currentSelectedTree?.publicLinkToken ? 'bg-green-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    currentSelectedTree?.publicLinkToken ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+              {currentSelectedTree?.publicLinkToken && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      readOnly
+                      value={`${window.location.origin}/public/tree/${currentSelectedTree.publicLinkToken}`}
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-600"
+                    />
+                    <button
+                      onClick={() => handleCopyPublicLink(currentSelectedTree.publicLinkToken!)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 transition-colors whitespace-nowrap"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Копировать
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleRegeneratePublicLink}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+                  >
+                    🔄 Создать новую ссылку
+                    <span className="text-orange-500 ml-1">⚠ Старая перестанет работать</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </Modal>
     </div>

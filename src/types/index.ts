@@ -66,6 +66,7 @@ export interface Tree {
   updatedAt?: string;
   memberCount?: number;
   personCount?: number;
+  publicLinkToken?: string;
 }
 
 export interface TreeMember {

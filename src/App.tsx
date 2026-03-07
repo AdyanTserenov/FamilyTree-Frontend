@@ -15,6 +15,7 @@ import { TreePage } from './pages/TreePage';
 import { PersonPage } from './pages/PersonPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { PublicTreePage } from './pages/PublicTreePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/confirm-email" element={<ConfirmEmailPage />} />
           <Route path="/invite/:token" element={<AcceptInvitePage />} />
+          <Route path="/public/tree/:token" element={<PublicTreePage />} />
 
           {/* Protected routes */}
           <Route element={<PrivateRoute />}>

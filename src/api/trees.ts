@@ -58,6 +58,21 @@ export const treeService = {
     const response = await treeApi.get<ApiResponse<null>>(`/trees/invite/${token}`);
     return response.data;
   },
+
+  generatePublicLink: async (treeId: number): Promise<ApiResponse<string>> => {
+    const response = await treeApi.post<ApiResponse<string>>(`/trees/${treeId}/public-link`);
+    return response.data;
+  },
+
+  revokePublicLink: async (treeId: number): Promise<ApiResponse<string>> => {
+    const response = await treeApi.delete<ApiResponse<string>>(`/trees/${treeId}/public-link`);
+    return response.data;
+  },
+
+  getPublicTree: async (token: string): Promise<ApiResponse<Person[]>> => {
+    const response = await treeApi.get<ApiResponse<Person[]>>(`/trees/public/${token}`);
+    return response.data;
+  },
 };
 
 // Persons
