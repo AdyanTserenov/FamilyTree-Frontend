@@ -7,7 +7,6 @@ import type {
   InviteLinkResponse,
   Person,
   PersonRequest,
-  GraphData,
   Relationship,
   RelationshipRequest,
   Comment,
@@ -93,8 +92,8 @@ export const personService = {
     return response.data;
   },
 
-  getGraph: async (treeId: number): Promise<ApiResponse<GraphData>> => {
-    const response = await treeApi.get<ApiResponse<GraphData>>(`/trees/${treeId}/persons/graph`);
+  getGraph: async (treeId: number): Promise<ApiResponse<Person[]>> => {
+    const response = await treeApi.get<ApiResponse<Person[]>>(`/trees/${treeId}/persons/graph`);
     return response.data;
   },
 

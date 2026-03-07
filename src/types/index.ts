@@ -128,12 +128,6 @@ export interface RelationshipRequest {
   type: RelationshipType;
 }
 
-// Graph types
-export interface GraphData {
-  persons: Person[];
-  relationships: Relationship[];
-}
-
 // Comment types
 export interface Comment {
   id: number;

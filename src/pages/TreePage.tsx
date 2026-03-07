@@ -156,8 +156,18 @@ export const TreePage = () => {
     const H_GAP = 200;
     const V_GAP = 160;
 
-    const persons = graphData?.data?.persons ?? [];
-    const relationships = graphData?.data?.relationships ?? [];
+    // The graph endpoint returns ApiResponse<Person[]> — a flat array of persons,
+    // each carrying their own embedded relationships list.
+    // Extract persons directly from graphData.data (the array itself).
+    const persons: Person[] = Array.isArray(graphData?.data) ? graphData.data : [];
+
+    // Flatten and deduplicate relationships from all persons' embedded .relationships arrays.
+    const seenIds = new Set<number>();
+    const relationships = persons.flatMap((p) => p.relationships ?? []).filter((r) => {
+      if (seenIds.has(r.id)) return false;
+      seenIds.add(r.id);
+      return true;
+    });
 
     const initialNodes: Node[] = persons.map((person, index) => ({
       id: String(person.id),
