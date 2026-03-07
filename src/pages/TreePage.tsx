@@ -1,4 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 import { TreeFiltersPanel, defaultFilters } from '../components/TreeFiltersPanel';
 import type { TreeFilters } from '../components/TreeFiltersPanel';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -173,6 +175,7 @@ export const TreePage = () => {
 
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('vertical');
   const [filters, setFilters] = useState<TreeFilters>(defaultFilters);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
   const [addRelModalOpen, setAddRelModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
@@ -344,6 +347,55 @@ export const TreePage = () => {
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const handler = () => setExportMenuOpen(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [exportMenuOpen]);
+
+  const exportToPng = async () => {
+    const element = document.querySelector('.react-flow') as HTMLElement;
+    if (!element) return;
+    toast.loading('Экспортируем...', { id: 'export' });
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const link = document.createElement('a');
+      link.download = `${currentTree?.name || 'дерево'}-дерево.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success('Файл сохранён', { id: 'export' });
+    } catch {
+      toast.error('Ошибка экспорта', { id: 'export' });
+    }
+    setExportMenuOpen(false);
+  };
+
+  const exportToPdf = async () => {
+    const element = document.querySelector('.react-flow') as HTMLElement;
+    if (!element) return;
+    toast.loading('Экспортируем...', { id: 'export' });
+    try {
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#ffffff',
+        pixelRatio: 2,
+      });
+      const pdf = new jsPDF({ orientation: 'landscape', format: 'a4' });
+      const imgWidth = pdf.internal.pageSize.getWidth();
+      const imgHeight = pdf.internal.pageSize.getHeight();
+      pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`${currentTree?.name || 'дерево'}-дерево.pdf`);
+      toast.success('Файл сохранён', { id: 'export' });
+    } catch {
+      toast.error('Ошибка экспорта', { id: 'export' });
+    }
+    setExportMenuOpen(false);
+  };
 
   // Mutations
   const createPersonMutation = useMutation({
@@ -517,6 +569,36 @@ export const TreePage = () => {
               {members.length}
             </span>
           </button>
+
+          {/* Export button with dropdown */}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setExportMenuOpen(!exportMenuOpen)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <span>📤</span>
+              <span>Экспорт</span>
+              <span className="text-xs">▼</span>
+            </button>
+            {exportMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[160px] overflow-hidden">
+                <button
+                  onClick={exportToPng}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <span>🖼</span>
+                  <span>Экспорт в PNG</span>
+                </button>
+                <button
+                  onClick={exportToPdf}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
+                >
+                  <span>📄</span>
+                  <span>Экспорт в PDF</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {canEditTree && (
             <>
