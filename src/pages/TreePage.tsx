@@ -180,7 +180,7 @@ export const TreePage = () => {
     }));
 
     const initialEdges: Edge[] = relationships.map((rel) => ({
-      id: String(rel.id),
+      id: `edge-${rel.id}`,
       source: String(rel.person1Id),
       target: String(rel.person2Id),
       label: rel.type === 'PARENT_CHILD' ? 'Родитель' : 'Партнёр',
@@ -369,7 +369,7 @@ export const TreePage = () => {
       </div>
 
       {/* Graph */}
-      <div style={{ height: 'calc(100vh - 130px)' }}>
+      <div style={{ height: 'calc(100vh - 64px)' }} className="w-full">
         {graphLoading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="lg" />
