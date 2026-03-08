@@ -116,13 +116,20 @@ export interface PersonRequest {
 // Relationship types
 export type RelationshipType = 'PARENT_CHILD' | 'PARTNERSHIP';
 
+/** Краткое представление персоны, возвращаемое внутри связи */
+export interface PersonSummary {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
 export interface Relationship {
   id: number;
   person1Id: number;
   person2Id: number;
   type: RelationshipType;
-  person1?: Person;
-  person2?: Person;
+  person1?: PersonSummary;
+  person2?: PersonSummary;
 }
 
 export interface RelationshipRequest {
