@@ -191,13 +191,9 @@ function getLayoutedElements(
     // Guard: only add edge if both nodes exist in the graph
     if (dagreGraph.hasNode(edge.source) && dagreGraph.hasNode(edge.target)) {
       dagreGraph.setEdge(edge.source, edge.target);
-    } else {
-      console.warn('[TreePage DEBUG] dagre setEdge skipped — missing node:', edge.source, '->', edge.target);
     }
   });
 
-  console.log('[TreePage DEBUG] dagre nodes:', dagreGraph.nodes());
-  console.log('[TreePage DEBUG] dagre edges:', dagreGraph.edges());
   dagre.layout(dagreGraph);
 
   const layoutedNodes = nodes.map((node) => {
@@ -331,11 +327,6 @@ export const TreePage = () => {
     const partnerships = allRels.filter(r => r.type === 'PARTNERSHIP');
     const parentChildRels = allRels.filter(r => r.type === 'PARENT_CHILD');
 
-    console.log('[TreePage DEBUG] personsList.length:', personsList.length);
-    console.log('[TreePage DEBUG] allRels (after dedup by id):', allRels.map(r => ({ id: r.id, type: r.type, p1: r.person1Id, p2: r.person2Id })));
-    console.log('[TreePage DEBUG] partnerships:', partnerships.map(r => ({ id: r.id, p1: r.person1Id, p2: r.person2Id })));
-    console.log('[TreePage DEBUG] parentChildRels:', parentChildRels.map(r => ({ id: r.id, p1: r.person1Id, p2: r.person2Id })));
-
     // Build couple nodes and their edges
     const coupleNodes: Node[] = [];
     const coupleEdges: Edge[] = [];
@@ -381,13 +372,8 @@ export const TreePage = () => {
           type: 'straight',
           animated: false,
         });
-      } else {
-        console.warn('[TreePage DEBUG] Duplicate couple pair detected (same persons, different rel IDs):', coupleKey, 'rel.id:', rel.id);
       }
     }
-
-    console.log('[TreePage DEBUG] coupleNodes:', coupleNodes.map(n => n.id));
-    console.log('[TreePage DEBUG] coupleEdges:', coupleEdges.map(e => ({ id: e.id, src: e.source, tgt: e.target })));
 
     // For PARENT_CHILD: route through couple node if parent has a partner
     const childEdges: Edge[] = [];
@@ -511,14 +497,12 @@ export const TreePage = () => {
 
   useEffect(() => {
     if (filteredNodes.length > 0 || filteredEdges.length > 0) {
-      console.log('[TreePage DEBUG] useEffect layout — filteredNodes:', filteredNodes.length, 'filteredEdges:', filteredEdges.length);
       try {
         const { nodes: ln, edges: le } = getLayoutedElements(filteredNodes, filteredEdges, layoutMode);
-        console.log('[TreePage DEBUG] layout result — nodes:', ln.length, 'edges:', le.length);
         setNodes(ln);
         setEdges(le);
       } catch (err) {
-        console.error('[TreePage DEBUG] getLayoutedElements threw:', err);
+        console.error('TreePage: layout error:', err);
         // Fallback: render without layout so graph is still visible
         setNodes(filteredNodes);
         setEdges(filteredEdges);
