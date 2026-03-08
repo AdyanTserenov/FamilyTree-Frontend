@@ -92,26 +92,29 @@ export const NotificationsPage = () => {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1 mb-4 border-b border-gray-200">
+      <div className="flex border-b border-gray-200 mb-4">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            filter === 'all'
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors
+            ${filter === 'all'
               ? 'border-green-500 text-green-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+              : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
-          Все <span className="ml-1 text-xs text-gray-400">({notifications.length})</span>
+          Все
         </button>
         <button
           onClick={() => setFilter('unread')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            filter === 'unread'
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors
+            ${filter === 'unread'
               ? 'border-green-500 text-green-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+              : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
-          Непрочитанные <span className="ml-1 text-xs text-gray-400">({unreadCount})</span>
+          Непрочитанные
+          {unreadCount > 0 && (
+            <span className="ml-1.5 bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full">
+              {unreadCount}
+            </span>
+          )}
         </button>
       </div>
 

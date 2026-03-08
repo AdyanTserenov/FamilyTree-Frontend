@@ -700,7 +700,13 @@ export const PersonPage = () => {
           {activeTab === 'media' && (
             <div className="space-y-4">
               {canEditTree && (
-                <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-green-400 hover:bg-green-50 transition-colors text-gray-600 hover:text-green-600">
+                <label
+                  className={`flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl transition-colors ${
+                    mediaFiles.length >= 50
+                      ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-50 cursor-not-allowed'
+                      : 'border-gray-300 cursor-pointer hover:border-green-400 hover:bg-green-50 text-gray-600 hover:text-green-600'
+                  }`}
+                >
                   <Upload className="w-5 h-5" />
                   <span className="font-medium">Загрузить файл</span>
                   <input
@@ -708,10 +714,21 @@ export const PersonPage = () => {
                     className="hidden"
                     onChange={handleMediaUpload}
                     accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                    disabled={mediaFiles.length >= 50}
                   />
                   {uploadMediaMutation.isPending && <Spinner size="sm" />}
                 </label>
               )}
+
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-500">
+                  Файлов: <span className="font-medium text-gray-700">{mediaFiles.length}</span>{' '}
+                  из <span className="font-medium text-gray-700">50</span>
+                </span>
+                {mediaFiles.length >= 50 && (
+                  <span className="text-xs text-red-500">Достигнут лимит файлов</span>
+                )}
+              </div>
 
               {mediaFiles.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Нет медиафайлов</p>
