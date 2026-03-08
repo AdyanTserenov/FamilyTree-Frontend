@@ -15,6 +15,7 @@ import type {
   Notification,
   AiRequest,
   AiResponse,
+  PersonHistoryEntry,
 } from '../types';
 
 // Trees
@@ -130,6 +131,12 @@ export const personService = {
 
   deleteRelationship: async (treeId: number, data: RelationshipRequest): Promise<ApiResponse<null>> => {
     const response = await treeApi.delete<ApiResponse<null>>(`/trees/${treeId}/persons/relationships`, { data });
+    return response.data;
+  },
+  getPersonHistory: async (treeId: number, personId: number): Promise<ApiResponse<PersonHistoryEntry[]>> => {
+    const response = await treeApi.get<ApiResponse<PersonHistoryEntry[]>>(
+      `/trees/${treeId}/persons/${personId}/history`
+    );
     return response.data;
   },
 };

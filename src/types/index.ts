@@ -204,3 +204,14 @@ export interface InviteLinkResponse {
   inviteLink: string;
   token: string;
 }
+
+// History types (п.6.5 ТЗ)
+export interface PersonHistoryEntry {
+  id: number;
+  action: 'CREATE' | 'UPDATE' | 'DELETE';
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+  userName: string;
+  createdAt: string;
+}

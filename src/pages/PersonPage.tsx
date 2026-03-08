@@ -14,6 +14,9 @@ import {
   Send,
   Download,
   X,
+  Clock,
+  Pencil,
+  Plus,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { personService, commentService, mediaService, aiService, treeService } from '../api/trees';
@@ -24,9 +27,92 @@ import { VoiceInputButton } from '../components/ui/VoiceInputButton';
 import { canEdit } from '../utils/roleUtils';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { formatDate, formatDateTime, getAge } from '../utils/formatDate';
-import type { Person, TreeRole, Comment, MediaFile } from '../types';
+import type { Person, TreeRole, Comment, MediaFile, PersonHistoryEntry } from '../types';
 
-type Tab = 'info' | 'comments' | 'media' | 'ai';
+type Tab = 'info' | 'comments' | 'media' | 'ai' | 'history';
+
+const fieldLabels: Record<string, string> = {
+  firstName: 'Имя',
+  lastName: 'Фамилия',
+  middleName: 'Отчество',
+  birthDate: 'Дата рождения',
+  deathDate: 'Дата смерти',
+  gender: 'Пол',
+  biography: 'Биография',
+  birthPlace: 'Место рождения',
+};
+
+const actionIcon = (action: string) => {
+  if (action === 'CREATE') return <Plus className="w-4 h-4 text-green-500" />;
+  if (action === 'DELETE') return <Trash2 className="w-4 h-4 text-red-500" />;
+  return <Pencil className="w-4 h-4 text-blue-500" />;
+};
+
+const formatHistoryDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
+const HistoryTab = ({ treeId, personId }: { treeId: number; personId: number }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['personHistory', treeId, personId],
+    queryFn: () => personService.getPersonHistory(treeId, personId),
+  });
+
+  if (isLoading)
+    return (
+      <div className="flex justify-center py-8">
+        <Spinner />
+      </div>
+    );
+
+  const history: PersonHistoryEntry[] = data?.data ?? [];
+
+  if (history.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+        <p>История изменений пуста</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {history.map((entry) => (
+        <div key={entry.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+          <div className="mt-0.5">{actionIcon(entry.action)}</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-800">
+              <span className="font-medium">{entry.userName}</span>
+              {entry.action === 'CREATE' && ' создал(а) персону'}
+              {entry.action === 'DELETE' && ' удалил(а) персону'}
+              {entry.action === 'UPDATE' && entry.fieldName && (
+                <>
+                  {' '}изменил(а) поле{' '}
+                  <span className="font-medium">«{fieldLabels[entry.fieldName] ?? entry.fieldName}»</span>
+                </>
+              )}
+            </p>
+            {entry.action === 'UPDATE' && (entry.oldValue || entry.newValue) && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                {entry.oldValue && <span className="line-through mr-2">{entry.oldValue}</span>}
+                {entry.newValue && <span className="text-green-600">{entry.newValue}</span>}
+              </p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">{formatHistoryDate(entry.createdAt)}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const PersonPage = () => {
   const { treeId, personId } = useParams<{ treeId: string; personId: string }>();
@@ -258,11 +344,14 @@ export const PersonPage = () => {
   const isFemale = person.gender === 'FEMALE';
   const age = getAge(person.birthDate, person.deathDate);
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  const tabs: { id: Tab; label: string; icon: React.ReactNode; restricted?: boolean }[] = [
     { id: 'info', label: 'Информация', icon: <User className="w-4 h-4" /> },
     { id: 'comments', label: 'Комментарии', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'media', label: 'Медиа', icon: <Image className="w-4 h-4" /> },
     { id: 'ai', label: 'AI-анализ', icon: <Sparkles className="w-4 h-4" /> },
+    ...(userRole === 'OWNER' || userRole === 'EDITOR'
+      ? [{ id: 'history' as Tab, label: 'История', icon: <Clock className="w-4 h-4" />, restricted: true }]
+      : []),
   ];
 
   return (
@@ -780,6 +869,11 @@ export const PersonPage = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {/* History Tab */}
+          {activeTab === 'history' && (userRole === 'OWNER' || userRole === 'EDITOR') && (
+            <HistoryTab treeId={treeIdNum} personId={personIdNum} />
           )}
         </div>
       </div>
