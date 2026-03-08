@@ -9,6 +9,7 @@ import {
   ReactFlow,
   Background,
   Controls,
+  Panel,
   useNodesState,
   useEdgesState,
   addEdge,
@@ -241,6 +242,7 @@ export const TreePage = () => {
   const treeIdNum = Number(treeId);
 
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('TB');
+  const [showRelationsList, setShowRelationsList] = useState<boolean>(false);
   const [filters, setFilters] = useState<TreeFilters>(defaultFilters);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
@@ -458,7 +460,7 @@ export const TreePage = () => {
   }, [persons, filters]);
 
   // Build filtered nodes/edges, passing through couple nodes whose both partners pass the filter
-  const { filteredNodes, filteredEdges } = useMemo(() => {
+  const { filteredNodes, filteredEdges, relations } = useMemo(() => {
     const allowedPersonIds = new Set(filteredPersonsForGraph.map(p => String(p.id)));
 
     // Keep person nodes that pass filter + couple nodes whose BOTH partners pass filter
@@ -489,7 +491,42 @@ export const TreePage = () => {
       };
     });
 
-    return { filteredNodes, filteredEdges };
+    // Build person name map for relations panel
+    const personNameMap = new Map(filteredPersonsForGraph.map(p => [
+      String(p.id),
+      [p.firstName, p.lastName].filter(Boolean).join(' '),
+    ]));
+
+    // Derive relations from filteredEdges that connect person nodes (not couple nodes)
+    const seenRelIds = new Set<string>();
+    const relations = filteredEdges
+      .filter(e => !e.id.startsWith('edge-couple-') && !e.source.startsWith('couple-') && !e.target.startsWith('couple-'))
+      .filter(e => { if (seenRelIds.has(e.id)) return false; seenRelIds.add(e.id); return true; })
+      .map(e => ({
+        id: e.id,
+        fromName: personNameMap.get(e.source) ?? e.source,
+        toName: personNameMap.get(e.target) ?? e.target,
+        type: 'PARENT_CHILD' as string,
+      }));
+
+    // Also add PARTNERSHIP relations from couple edges (one per couple node)
+    const seenCouples = new Set<string>();
+    filteredEdges
+      .filter(e => e.id.startsWith('edge-couple-') && e.label === 'Партнёр')
+      .forEach(e => {
+        const coupleId = e.target;
+        if (seenCouples.has(coupleId)) return;
+        seenCouples.add(coupleId);
+        // Find the second partner edge for this couple node
+        const partnerEdges = filteredEdges.filter(fe => fe.target === coupleId);
+        if (partnerEdges.length >= 2) {
+          const nameA = personNameMap.get(partnerEdges[0].source) ?? partnerEdges[0].source;
+          const nameB = personNameMap.get(partnerEdges[1].source) ?? partnerEdges[1].source;
+          relations.push({ id: coupleId, fromName: nameA, toName: nameB, type: 'PARTNERSHIP' });
+        }
+      });
+
+    return { filteredNodes, filteredEdges, relations };
   }, [initialNodes, initialEdges, filteredPersonsForGraph, filters.showPhotos, filters.showBirthPlace]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(filteredNodes);
@@ -823,6 +860,34 @@ export const TreePage = () => {
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
             <Controls />
+            <Panel position="bottom-right" className="mb-2 mr-2">
+              <button
+                onClick={() => setShowRelationsList(!showRelationsList)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md shadow-sm text-sm text-gray-600 hover:bg-gray-50"
+              >
+                <GitBranch className="w-4 h-4" />
+                Связи ({edges.length})
+              </button>
+
+              {showRelationsList && (
+                <div className="absolute bottom-10 right-0 w-72 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                  <div className="p-3 border-b border-gray-100">
+                    <h3 className="text-sm font-medium text-gray-700">Все связи</h3>
+                  </div>
+                  {relations.map(relation => (
+                    <div key={relation.id} className="p-3 border-b border-gray-50 hover:bg-gray-50 text-sm">
+                      <span className="font-medium">{relation.fromName}</span>
+                      <span className="text-gray-400 mx-2">{relation.type === 'PARENT_CHILD' ? '→' : '⟷'}</span>
+                      <span className="font-medium">{relation.toName}</span>
+                      <span className="ml-2 text-xs text-gray-400">{relation.type === 'PARENT_CHILD' ? 'Родитель' : 'Партнёр'}</span>
+                    </div>
+                  ))}
+                  {relations.length === 0 && (
+                    <p className="p-3 text-sm text-gray-400">Связей пока нет</p>
+                  )}
+                </div>
+              )}
+            </Panel>
           </ReactFlow>
         )}
         <TreeFiltersPanel filters={filters} onChange={setFilters} />
