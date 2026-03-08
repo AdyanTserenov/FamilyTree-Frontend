@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -26,6 +27,11 @@ export const NotificationsPage = () => {
   const queryClient = useQueryClient();
   const { notifications, markAsRead, markAllAsRead, removeNotification, unreadCount } =
     useNotificationStore();
+
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  const filteredNotifications =
+    filter === 'unread' ? notifications.filter((n) => !n.read) : notifications;
 
   const markReadMutation = useMutation({
     mutationFn: (id: number) => notificationService.markAsRead(id),
@@ -80,9 +86,33 @@ export const NotificationsPage = () => {
             ) : (
               <CheckCheck className="w-4 h-4" />
             )}
-            Прочитать все
+            Отметить все как прочитанные
           </button>
         )}
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex gap-1 mb-4 border-b border-gray-200">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            filter === 'all'
+              ? 'border-green-500 text-green-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Все <span className="ml-1 text-xs text-gray-400">({notifications.length})</span>
+        </button>
+        <button
+          onClick={() => setFilter('unread')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            filter === 'unread'
+              ? 'border-green-500 text-green-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Непрочитанные <span className="ml-1 text-xs text-gray-400">({unreadCount})</span>
+        </button>
       </div>
 
       {/* Notifications list */}
@@ -94,9 +124,14 @@ export const NotificationsPage = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Нет уведомлений</h2>
           <p className="text-gray-600">Здесь будут отображаться ваши уведомления</p>
         </div>
+      ) : filteredNotifications.length === 0 ? (
+        <div className="text-center py-12 text-gray-500">
+          <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p>Нет непрочитанных уведомлений</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          {notifications.map((notification: Notification) => (
+          {filteredNotifications.map((notification: Notification) => (
             <div
               key={notification.id}
               className={`bg-white rounded-xl border p-4 transition-colors ${
