@@ -617,7 +617,7 @@ export const TreePage = () => {
     'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
   return (
-    <div className="-mx-4 sm:-mx-6 lg:-mx-8 -my-8" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+    <div className="flex flex-col h-screen">
       {/* Top bar */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -772,7 +772,7 @@ export const TreePage = () => {
       </div>
 
       {/* Graph */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} className="w-full">
+      <div className="flex-1 relative overflow-hidden min-h-0 w-full">
         {graphLoading ? (
           <div className="flex items-center justify-center h-full">
             <Spinner size="lg" />
@@ -805,7 +805,7 @@ export const TreePage = () => {
             fitView
             fitViewOptions={{ padding: 0.2 }}
             key={layoutMode}
-            style={{ width: '100%', height: '100%' }}
+            className="w-full h-full"
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e5e7eb" />
             <Controls />
