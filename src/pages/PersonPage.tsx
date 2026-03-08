@@ -817,74 +817,90 @@ export const PersonPage = () => {
               </button>
 
               {/* AI Results */}
-              {aiResult && (
-                <div className="space-y-4">
-                  {aiResult.summary && (
-                    <div className="bg-green-50 rounded-xl p-4">
-                      <h4 className="text-sm font-semibold text-green-800 mb-2">Краткое резюме</h4>
-                      <p className="text-green-700 text-sm">{aiResult.summary}</p>
+              {aiResult && (() => {
+                const hasData =
+                  aiResult.summary ||
+                  (aiResult.dates?.length ?? 0) > 0 ||
+                  (aiResult.places?.length ?? 0) > 0 ||
+                  (aiResult.professions?.length ?? 0) > 0 ||
+                  (aiResult.events?.length ?? 0) > 0;
+                return (
+                  <div className="space-y-4">
+                    {!hasData && (
+                      <div className="bg-yellow-50 rounded-xl p-4">
+                        <p className="text-yellow-700 text-sm">
+                          AI не смог извлечь факты из текста. Попробуйте предоставить более подробную биографию.
+                        </p>
+                      </div>
+                    )}
+
+                    {aiResult.summary && (
+                      <div className="bg-green-50 rounded-xl p-4">
+                        <h4 className="text-sm font-semibold text-green-800 mb-2">Краткое резюме</h4>
+                        <p className="text-green-700 text-sm">{aiResult.summary}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(aiResult.dates?.length ?? 0) > 0 && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            Даты
+                          </h4>
+                          <ul className="space-y-1">
+                            {aiResult.dates.map((d, i) => (
+                              <li key={i} className="text-sm text-gray-600">• {d}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(aiResult.places?.length ?? 0) > 0 && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            Места
+                          </h4>
+                          <ul className="space-y-1">
+                            {aiResult.places.map((p, i) => (
+                              <li key={i} className="text-sm text-gray-600">• {p}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(aiResult.professions?.length ?? 0) > 0 && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            Профессии
+                          </h4>
+                          <ul className="space-y-1">
+                            {aiResult.professions.map((p, i) => (
+                              <li key={i} className="text-sm text-gray-600">• {p}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(aiResult.events?.length ?? 0) > 0 && (
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            События
+                          </h4>
+                          <ul className="space-y-1">
+                            {aiResult.events.map((e, i) => (
+                              <li key={i} className="text-sm text-gray-600">• {e}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {aiResult.dates.length > 0 && (
-                      <div className="bg-gray-50 rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          Даты
-                        </h4>
-                        <ul className="space-y-1">
-                          {aiResult.dates.map((d, i) => (
-                            <li key={i} className="text-sm text-gray-600">• {d}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {aiResult.places.length > 0 && (
-                      <div className="bg-gray-50 rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          Места
-                        </h4>
-                        <ul className="space-y-1">
-                          {aiResult.places.map((p, i) => (
-                            <li key={i} className="text-sm text-gray-600">• {p}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {aiResult.professions.length > 0 && (
-                      <div className="bg-gray-50 rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          Профессии
-                        </h4>
-                        <ul className="space-y-1">
-                          {aiResult.professions.map((p, i) => (
-                            <li key={i} className="text-sm text-gray-600">• {p}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {aiResult.events.length > 0 && (
-                      <div className="bg-gray-50 rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                          <Sparkles className="w-4 h-4" />
-                          События
-                        </h4>
-                        <ul className="space-y-1">
-                          {aiResult.events.map((e, i) => (
-                            <li key={i} className="text-sm text-gray-600">• {e}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
