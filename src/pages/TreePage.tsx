@@ -188,9 +188,16 @@ function getLayoutedElements(
   });
 
   edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
+    // Guard: only add edge if both nodes exist in the graph
+    if (dagreGraph.hasNode(edge.source) && dagreGraph.hasNode(edge.target)) {
+      dagreGraph.setEdge(edge.source, edge.target);
+    } else {
+      console.warn('[TreePage DEBUG] dagre setEdge skipped — missing node:', edge.source, '->', edge.target);
+    }
   });
 
+  console.log('[TreePage DEBUG] dagre nodes:', dagreGraph.nodes());
+  console.log('[TreePage DEBUG] dagre edges:', dagreGraph.edges());
   dagre.layout(dagreGraph);
 
   const layoutedNodes = nodes.map((node) => {
@@ -324,6 +331,11 @@ export const TreePage = () => {
     const partnerships = allRels.filter(r => r.type === 'PARTNERSHIP');
     const parentChildRels = allRels.filter(r => r.type === 'PARENT_CHILD');
 
+    console.log('[TreePage DEBUG] personsList.length:', personsList.length);
+    console.log('[TreePage DEBUG] allRels (after dedup by id):', allRels.map(r => ({ id: r.id, type: r.type, p1: r.person1Id, p2: r.person2Id })));
+    console.log('[TreePage DEBUG] partnerships:', partnerships.map(r => ({ id: r.id, p1: r.person1Id, p2: r.person2Id })));
+    console.log('[TreePage DEBUG] parentChildRels:', parentChildRels.map(r => ({ id: r.id, p1: r.person1Id, p2: r.person2Id })));
+
     // Build couple nodes and their edges
     const coupleNodes: Node[] = [];
     const coupleEdges: Edge[] = [];
@@ -335,38 +347,47 @@ export const TreePage = () => {
       const b = Math.max(rel.person1Id, rel.person2Id);
       const coupleKey = `${a}-${b}`;
       const coupleId = `couple-${coupleKey}`;
-      coupleNodeMap.set(coupleKey, coupleId);
 
-      coupleNodes.push({
-        id: coupleId,
-        type: 'coupleNode',
-        data: {},
-        position: { x: 0, y: 0 },
-        style: { width: 8, height: 8 },
-      });
+      // Guard: only create couple node once per unique pair
+      if (!coupleNodeMap.has(coupleKey)) {
+        coupleNodeMap.set(coupleKey, coupleId);
 
-      // Edge from person A (person1Id) to couple node
-      coupleEdges.push({
-        id: `edge-couple-${rel.person1Id}-${coupleId}`,
-        source: String(rel.person1Id),
-        target: coupleId,
-        style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
-        type: 'straight',
-        animated: false,
-        label: 'Партнёр',
-        labelStyle: { fontSize: 10, fill: '#ec4899' },
-      });
+        coupleNodes.push({
+          id: coupleId,
+          type: 'coupleNode',
+          data: {},
+          position: { x: 0, y: 0 },
+          style: { width: 8, height: 8 },
+        });
 
-      // Edge from person B (person2Id) to couple node
-      coupleEdges.push({
-        id: `edge-couple-${rel.person2Id}-${coupleId}`,
-        source: String(rel.person2Id),
-        target: coupleId,
-        style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
-        type: 'straight',
-        animated: false,
-      });
+        // Edge from person A (person1Id) to couple node
+        coupleEdges.push({
+          id: `edge-couple-${a}-${coupleId}`,
+          source: String(a),
+          target: coupleId,
+          style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
+          type: 'straight',
+          animated: false,
+          label: 'Партнёр',
+          labelStyle: { fontSize: 10, fill: '#ec4899' },
+        });
+
+        // Edge from person B (person2Id) to couple node
+        coupleEdges.push({
+          id: `edge-couple-${b}-${coupleId}`,
+          source: String(b),
+          target: coupleId,
+          style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
+          type: 'straight',
+          animated: false,
+        });
+      } else {
+        console.warn('[TreePage DEBUG] Duplicate couple pair detected (same persons, different rel IDs):', coupleKey, 'rel.id:', rel.id);
+      }
     }
+
+    console.log('[TreePage DEBUG] coupleNodes:', coupleNodes.map(n => n.id));
+    console.log('[TreePage DEBUG] coupleEdges:', coupleEdges.map(e => ({ id: e.id, src: e.source, tgt: e.target })));
 
     // For PARENT_CHILD: route through couple node if parent has a partner
     const childEdges: Edge[] = [];
@@ -490,9 +511,18 @@ export const TreePage = () => {
 
   useEffect(() => {
     if (filteredNodes.length > 0 || filteredEdges.length > 0) {
-      const { nodes: ln, edges: le } = getLayoutedElements(filteredNodes, filteredEdges, layoutMode);
-      setNodes(ln);
-      setEdges(le);
+      console.log('[TreePage DEBUG] useEffect layout — filteredNodes:', filteredNodes.length, 'filteredEdges:', filteredEdges.length);
+      try {
+        const { nodes: ln, edges: le } = getLayoutedElements(filteredNodes, filteredEdges, layoutMode);
+        console.log('[TreePage DEBUG] layout result — nodes:', ln.length, 'edges:', le.length);
+        setNodes(ln);
+        setEdges(le);
+      } catch (err) {
+        console.error('[TreePage DEBUG] getLayoutedElements threw:', err);
+        // Fallback: render without layout so graph is still visible
+        setNodes(filteredNodes);
+        setEdges(filteredEdges);
+      }
     } else if (persons.length === 0) {
       setNodes([]);
       setEdges([]);
