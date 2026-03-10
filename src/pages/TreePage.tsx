@@ -53,6 +53,7 @@ type PersonNodeData = {
   onClick: (p: Person) => void;
   showPhoto: boolean;
   showBirthPlace: boolean;
+  direction?: string;
 };
 
 // Invisible couple node — rendered as a small pink dot with connection handles
@@ -86,11 +87,13 @@ const CoupleNode = () => (
 
 // Custom person node component
 const PersonNode = ({ data }: NodeProps) => {
-  const { person, onClick, showPhoto, showBirthPlace } = data as PersonNodeData;
+  const { person, onClick, showPhoto, showBirthPlace, direction = 'TB' } = data as PersonNodeData;
   const fullName = [person.firstName, person.lastName].filter(Boolean).join(' ');
   const initials = [person.firstName?.[0], person.lastName?.[0]].filter(Boolean).join('');
   const isMale = person.gender === 'MALE';
   const isFemale = person.gender === 'FEMALE';
+  const isVertical = direction === 'TB';
+  const isRadial = direction === 'radial';
 
   return (
     <div
@@ -98,8 +101,36 @@ const PersonNode = ({ data }: NodeProps) => {
       className="cursor-pointer select-none"
       style={{ width: 140 }}
     >
-      <Handle type="target" position={Position.Top} style={{ background: '#9ca3af' }} />
-      <Handle type="target" position={Position.Left} id="left" style={{ background: '#9ca3af' }} />
+      {/* Target handle - receives from parent */}
+      <Handle
+        type="target"
+        position={isVertical || isRadial ? Position.Top : Position.Left}
+        id="parent-in"
+        style={{ background: '#3b82f6', width: 8, height: 8 }}
+      />
+
+      {/* Source handle - sends to children */}
+      <Handle
+        type="source"
+        position={isVertical || isRadial ? Position.Bottom : Position.Right}
+        id="children-out"
+        style={{ background: '#3b82f6', width: 8, height: 8 }}
+      />
+
+      {/* Partnership handles */}
+      <Handle
+        type="source"
+        position={isVertical ? Position.Right : (isRadial ? Position.Right : Position.Bottom)}
+        id="partner-right"
+        style={{ background: '#ec4899', width: 8, height: 8 }}
+      />
+      <Handle
+        type="target"
+        position={isVertical ? Position.Left : (isRadial ? Position.Left : Position.Top)}
+        id="partner-left"
+        style={{ background: '#ec4899', width: 8, height: 8 }}
+      />
+
       <div
         className={`rounded-xl border-2 p-3 text-center shadow-sm hover:shadow-md transition-shadow bg-white ${
           isMale ? 'border-green-300' : isFemale ? 'border-pink-300' : 'border-gray-300'
@@ -133,8 +164,6 @@ const PersonNode = ({ data }: NodeProps) => {
           </p>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} style={{ background: '#9ca3af' }} />
-      <Handle type="source" position={Position.Right} id="right" style={{ background: '#9ca3af' }} />
     </div>
   );
 };
@@ -146,6 +175,117 @@ type LayoutMode = 'TB' | 'LR' | 'radial';
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 80;
 
+// Radial fan layout: places root(s) at center, children fan out in concentric arcs
+function getRadialLayout(
+  nodes: Node[],
+  edges: Edge[]
+): { nodes: Node[]; edges: Edge[] } {
+  const RADIUS_STEP = 260; // px between levels
+  const RN_WIDTH = 180;
+  const RN_HEIGHT = 100;
+
+  // Build parent-child adjacency (only PARENT_CHILD edges, not couple edges)
+  const childrenMap: Record<string, string[]> = {};
+  const parentMap: Record<string, string> = {};
+
+  edges.forEach(edge => {
+    // Skip couple-node edges (they have 'couple' in their id)
+    if (edge.id.includes('couple') || edge.id.includes('partner')) return;
+    if (!childrenMap[edge.source]) childrenMap[edge.source] = [];
+    childrenMap[edge.source].push(edge.target);
+    parentMap[edge.target] = edge.source;
+  });
+
+  // Find root nodes (no parent) among person nodes
+  const personNodes = nodes.filter(n => n.type === 'personNode');
+  const roots = personNodes.filter(n => !parentMap[n.id]);
+  if (roots.length === 0) {
+    // Fallback: use first person node as root
+    if (personNodes.length === 0) return { nodes, edges };
+    roots.push(personNodes[0]);
+  }
+
+  const positions: Record<string, { x: number; y: number }> = {};
+
+  // Recursive fan placement; startAngle and endAngle in radians
+  const assignPositions = (
+    nodeId: string,
+    level: number,
+    startAngle: number,
+    endAngle: number
+  ) => {
+    const angle = (startAngle + endAngle) / 2;
+    const radius = level * RADIUS_STEP;
+
+    positions[nodeId] = {
+      x: Math.cos(angle) * radius - RN_WIDTH / 2,
+      y: Math.sin(angle) * radius - RN_HEIGHT / 2,
+    };
+
+    const children = childrenMap[nodeId] || [];
+    if (children.length === 0) return;
+
+    const angleStep = (endAngle - startAngle) / children.length;
+    children.forEach((childId, i) => {
+      assignPositions(
+        childId,
+        level + 1,
+        startAngle + i * angleStep,
+        startAngle + (i + 1) * angleStep
+      );
+    });
+  };
+
+  // Handle multiple roots by dividing the full circle
+  const anglePerRoot = (2 * Math.PI) / Math.max(roots.length, 1);
+  roots.forEach((root, i) => {
+    const startAngle = i * anglePerRoot - Math.PI / 2;
+    const endAngle = startAngle + anglePerRoot;
+    assignPositions(root.id, 0, startAngle, endAngle);
+  });
+
+  // For couple nodes: position them between their two partner nodes
+  const coupleNodes = nodes.filter(n => n.type === 'coupleNode');
+  coupleNodes.forEach(coupleNode => {
+    // Find the two person nodes connected to this couple node
+    const connectedEdges = edges.filter(
+      e => e.source === coupleNode.id || e.target === coupleNode.id
+    );
+    const connectedPersonIds = connectedEdges
+      .map(e => (e.source === coupleNode.id ? e.target : e.source))
+      .filter(id => positions[id]);
+
+    if (connectedPersonIds.length >= 2) {
+      const p1 = positions[connectedPersonIds[0]];
+      const p2 = positions[connectedPersonIds[1]];
+      positions[coupleNode.id] = {
+        x: (p1.x + p2.x) / 2,
+        y: (p1.y + p2.y) / 2,
+      };
+    } else if (connectedPersonIds.length === 1) {
+      const p = positions[connectedPersonIds[0]];
+      positions[coupleNode.id] = { x: p.x + 20, y: p.y + 20 };
+    }
+  });
+
+  // Apply positions, set direction: 'radial' in data for person nodes
+  const layoutedNodes = nodes.map(node => ({
+    ...node,
+    position: positions[node.id] ?? node.position,
+    data: node.type === 'personNode'
+      ? { ...node.data, direction: 'radial' }
+      : node.data,
+  }));
+
+  // Use straight edges in radial mode
+  const layoutedEdges = edges.map(edge => ({
+    ...edge,
+    type: 'straight',
+  }));
+
+  return { nodes: layoutedNodes, edges: layoutedEdges };
+}
+
 function getLayoutedElements(
   nodes: Node[],
   edges: Edge[],
@@ -154,45 +294,7 @@ function getLayoutedElements(
   if (nodes.length === 0) return { nodes, edges };
 
   if (mode === 'radial') {
-    // Separate person nodes from couple nodes
-    const personNodes = nodes.filter(n => n.type !== 'coupleNode');
-    const coupleNodesList = nodes.filter(n => n.type === 'coupleNode');
-    const centerX = 400;
-    const centerY = 400;
-    const radius = Math.max(200, personNodes.length * 60);
-    const layoutedPersonNodes = personNodes.map((node, index) => {
-      if (index === 0) {
-        return { ...node, position: { x: centerX - NODE_WIDTH / 2, y: centerY - NODE_HEIGHT / 2 } };
-      }
-      const angle = ((index - 1) / (personNodes.length - 1)) * 2 * Math.PI;
-      return {
-        ...node,
-        position: {
-          x: centerX + radius * Math.cos(angle) - NODE_WIDTH / 2,
-          y: centerY + radius * Math.sin(angle) - NODE_HEIGHT / 2,
-        },
-      };
-    });
-    // Position couple nodes between their two partners
-    const posMap = new Map(layoutedPersonNodes.map(n => [n.id, n.position]));
-    const layoutedCoupleNodes = coupleNodesList.map(cn => {
-      const partnerEdges = edges.filter(e => e.target === cn.id);
-      if (partnerEdges.length === 2) {
-        const pos1 = posMap.get(partnerEdges[0].source);
-        const pos2 = posMap.get(partnerEdges[1].source);
-        if (pos1 && pos2) {
-          return {
-            ...cn,
-            position: {
-              x: (pos1.x + pos2.x) / 2 + NODE_WIDTH / 2 - 4,
-              y: (pos1.y + pos2.y) / 2 + NODE_HEIGHT / 2 - 4,
-            },
-          };
-        }
-      }
-      return cn;
-    });
-    return { nodes: [...layoutedPersonNodes, ...layoutedCoupleNodes], edges };
+    return getRadialLayout(nodes, edges);
   }
 
   // Dagre layout for vertical and horizontal
@@ -227,6 +329,10 @@ function getLayoutedElements(
         x: nodeWithPosition.x - w / 2,
         y: nodeWithPosition.y - h / 2,
       },
+      // Inject direction into person node data
+      data: node.type === 'personNode'
+        ? { ...node.data, direction: mode }
+        : node.data,
     };
   });
 
@@ -377,6 +483,7 @@ export const TreePage = () => {
         coupleEdges.push({
           id: `edge-couple-${a}-${coupleId}`,
           source: String(a),
+          sourceHandle: 'partner-right',
           target: coupleId,
           targetHandle: 'left',
           style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
@@ -390,6 +497,7 @@ export const TreePage = () => {
         coupleEdges.push({
           id: `edge-couple-${b}-${coupleId}`,
           source: String(b),
+          sourceHandle: 'partner-right',
           target: coupleId,
           targetHandle: 'right',
           style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
@@ -427,8 +535,9 @@ export const TreePage = () => {
       childEdges.push({
         id: `edge-${rel.id}`,
         source: sourceId,
-        ...(sourceHandle ? { sourceHandle } : {}),
+        ...(sourceHandle ? { sourceHandle } : { sourceHandle: 'children-out' }),
         target: String(childId),
+        targetHandle: 'parent-in',
         style: { stroke: '#3b82f6', strokeWidth: 2 },
         type: 'smoothstep',
         animated: false,
@@ -505,7 +614,7 @@ export const TreePage = () => {
       e => allowedNodeIds.has(e.source) && allowedNodeIds.has(e.target)
     );
 
-    // Inject showPhoto/showBirthPlace into person nodes
+    // Inject showPhoto/showBirthPlace into person nodes (direction will be set by getLayoutedElements)
     const filteredNodes = preFilteredNodes.map(n => {
       if (n.type !== 'personNode') return n;
       return {
