@@ -199,6 +199,7 @@ export interface AiResponse {
   events: string[];
   summary: string;
   success: boolean;
+  errorMessage?: string;
 }
 
 // Invite types

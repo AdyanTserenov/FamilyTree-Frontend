@@ -134,6 +134,8 @@ export const PersonPage = () => {
     professions: string[];
     events: string[];
     summary: string;
+    success: boolean;
+    errorMessage?: string;
   } | null>(null);
   const [personForm, setPersonForm] = useState<Partial<Person>>({});
 
@@ -819,14 +821,22 @@ export const PersonPage = () => {
               {/* AI Results */}
               {aiResult && (() => {
                 const hasData =
-                  aiResult.summary ||
-                  (aiResult.dates?.length ?? 0) > 0 ||
-                  (aiResult.places?.length ?? 0) > 0 ||
-                  (aiResult.professions?.length ?? 0) > 0 ||
-                  (aiResult.events?.length ?? 0) > 0;
+                  (aiResult.summary && aiResult.summary.trim().length > 0) ||
+                  (Array.isArray(aiResult.dates) && aiResult.dates.length > 0) ||
+                  (Array.isArray(aiResult.places) && aiResult.places.length > 0) ||
+                  (Array.isArray(aiResult.professions) && aiResult.professions.length > 0) ||
+                  (Array.isArray(aiResult.events) && aiResult.events.length > 0);
                 return (
                   <div className="space-y-4">
-                    {!hasData && (
+                    {!aiResult.success && (
+                      <div className="bg-red-50 rounded-xl p-4">
+                        <p className="text-red-700 text-sm font-medium">Сервис AI недоступен</p>
+                        <p className="text-red-600 text-sm mt-1">
+                          {aiResult.errorMessage ?? 'Сервис AI временно недоступен. Попробуйте позже.'}
+                        </p>
+                      </div>
+                    )}
+                    {aiResult.success && !hasData && (
                       <div className="bg-yellow-50 rounded-xl p-4">
                         <p className="text-yellow-700 text-sm">
                           AI не смог извлечь факты из текста. Попробуйте предоставить более подробную биографию.
