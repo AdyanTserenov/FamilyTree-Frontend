@@ -52,17 +52,33 @@ type PersonNodeData = {
   showBirthPlace: boolean;
 };
 
-// Invisible couple node — rendered as a small pink dot
+// Invisible couple node — rendered as a small pink dot with connection handles
 const CoupleNode = () => (
-  <div
-    style={{
-      width: 8,
-      height: 8,
-      background: '#ec4899',
-      borderRadius: '50%',
-      border: '2px solid #ec4899',
-    }}
-  />
+  <div style={{ width: 8, height: 8, position: 'relative' }}>
+    {/* Accepts edges from left partner */}
+    <Handle
+      type="target"
+      position={Position.Left}
+      id="left"
+      style={{ background: '#ec4899', width: 6, height: 6, border: 'none', left: -3 }}
+    />
+    {/* Accepts edges from right partner */}
+    <Handle
+      type="target"
+      position={Position.Right}
+      id="right"
+      style={{ background: '#ec4899', width: 6, height: 6, border: 'none', right: -3 }}
+    />
+    {/* Sends edges to children */}
+    <Handle
+      type="source"
+      position={Position.Bottom}
+      id="bottom"
+      style={{ background: '#ec4899', width: 6, height: 6, border: 'none', bottom: -3 }}
+    />
+    {/* Visible pink dot */}
+    <div style={{ width: 8, height: 8, background: '#ec4899', borderRadius: '50%' }} />
+  </div>
 );
 
 // Custom person node component
@@ -353,11 +369,12 @@ export const TreePage = () => {
           style: { width: 8, height: 8 },
         });
 
-        // Edge from person A (person1Id) to couple node
+        // Edge from person A (person1Id) to couple node — enters from the left
         coupleEdges.push({
           id: `edge-couple-${a}-${coupleId}`,
           source: String(a),
           target: coupleId,
+          targetHandle: 'left',
           style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
           type: 'straight',
           animated: false,
@@ -365,11 +382,12 @@ export const TreePage = () => {
           labelStyle: { fontSize: 10, fill: '#ec4899' },
         });
 
-        // Edge from person B (person2Id) to couple node
+        // Edge from person B (person2Id) to couple node — enters from the right
         coupleEdges.push({
           id: `edge-couple-${b}-${coupleId}`,
           source: String(b),
           target: coupleId,
+          targetHandle: 'right',
           style: { stroke: '#ec4899', strokeWidth: 2, strokeDasharray: '6 3' },
           type: 'straight',
           animated: false,
@@ -389,11 +407,15 @@ export const TreePage = () => {
       );
 
       let sourceId: string;
+      let sourceHandle: string | undefined;
       if (partnerRel) {
         const a = Math.min(partnerRel.person1Id, partnerRel.person2Id);
         const b = Math.max(partnerRel.person1Id, partnerRel.person2Id);
         const coupleKey = `${a}-${b}`;
         sourceId = coupleNodeMap.get(coupleKey) ?? String(parentId);
+        if (sourceId.startsWith('couple-')) {
+          sourceHandle = 'bottom';
+        }
       } else {
         sourceId = String(parentId);
       }
@@ -401,9 +423,10 @@ export const TreePage = () => {
       childEdges.push({
         id: `edge-${rel.id}`,
         source: sourceId,
+        ...(sourceHandle ? { sourceHandle } : {}),
         target: String(childId),
         style: { stroke: '#3b82f6', strokeWidth: 2 },
-        type: 'default',
+        type: 'smoothstep',
         animated: false,
       });
     }
