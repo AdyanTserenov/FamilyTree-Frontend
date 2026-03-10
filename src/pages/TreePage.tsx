@@ -35,6 +35,7 @@ import {
   ChevronDown,
   FileImage,
   FileText,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { personService, treeService } from '../api/trees';
@@ -261,6 +262,7 @@ export const TreePage = () => {
 
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('TB');
   const [showRelationsList, setShowRelationsList] = useState<boolean>(false);
+  const [deletingRelation, setDeletingRelation] = useState<string | null>(null);
   const [filters, setFilters] = useState<TreeFilters>(defaultFilters);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
@@ -524,7 +526,7 @@ export const TreePage = () => {
 
     // Derive relations from filteredEdges that connect person nodes (not couple nodes)
     const seenRelIds = new Set<string>();
-    const relations = filteredEdges
+    const relations: { id: string; fromName: string; toName: string; type: string; fromId: number; toId: number }[] = filteredEdges
       .filter(e => !e.id.startsWith('edge-couple-') && !e.source.startsWith('couple-') && !e.target.startsWith('couple-'))
       .filter(e => { if (seenRelIds.has(e.id)) return false; seenRelIds.add(e.id); return true; })
       .map(e => ({
@@ -532,6 +534,8 @@ export const TreePage = () => {
         fromName: personNameMap.get(e.source) ?? e.source,
         toName: personNameMap.get(e.target) ?? e.target,
         type: 'PARENT_CHILD' as string,
+        fromId: Number(e.source),
+        toId: Number(e.target),
       }));
 
     // Also add PARTNERSHIP relations from couple edges (one per couple node)
@@ -547,7 +551,14 @@ export const TreePage = () => {
         if (partnerEdges.length >= 2) {
           const nameA = personNameMap.get(partnerEdges[0].source) ?? partnerEdges[0].source;
           const nameB = personNameMap.get(partnerEdges[1].source) ?? partnerEdges[1].source;
-          relations.push({ id: coupleId, fromName: nameA, toName: nameB, type: 'PARTNERSHIP' });
+          relations.push({
+            id: coupleId,
+            fromName: nameA,
+            toName: nameB,
+            type: 'PARTNERSHIP',
+            fromId: Number(partnerEdges[0].source),
+            toId: Number(partnerEdges[1].source),
+          });
         }
       });
 
@@ -679,6 +690,27 @@ export const TreePage = () => {
     onError: () => toast.error('Ошибка добавления связи'),
   });
 
+
+  const handleDeleteRelation = (relationId: string) => {
+    setDeletingRelation(relationId)
+  }
+
+  const confirmDeleteRelation = async () => {
+    if (!deletingRelation) return
+    const rel = relations.find(r => r.id === deletingRelation)
+    if (!rel) return
+    try {
+      await personService.deleteRelationship(treeIdNum, {
+        person1Id: rel.fromId,
+        person2Id: rel.toId,
+        type: rel.type as 'PARENT_CHILD' | 'PARTNERSHIP',
+      })
+      queryClient.invalidateQueries({ queryKey: ['graph', treeIdNum] })
+      setDeletingRelation(null)
+    } catch (e) {
+      console.error('Failed to delete relation', e)
+    }
+  }
 
   // Search
   const filteredPersons = searchQuery
@@ -900,11 +932,27 @@ export const TreePage = () => {
                     <h3 className="text-sm font-medium text-gray-700">Все связи</h3>
                   </div>
                   {relations.map(relation => (
-                    <div key={relation.id} className="p-3 border-b border-gray-50 hover:bg-gray-50 text-sm">
-                      <span className="font-medium">{relation.fromName}</span>
-                      <span className="text-gray-400 mx-2">{relation.type === 'PARENT_CHILD' ? '→' : '⟷'}</span>
-                      <span className="font-medium">{relation.toName}</span>
-                      <span className="ml-2 text-xs text-gray-400">{relation.type === 'PARENT_CHILD' ? 'Родитель' : 'Партнёр'}</span>
+                    <div key={relation.id}
+                         className="flex items-center justify-between p-3 border-b border-gray-50 hover:bg-gray-50 text-sm group">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{relation.fromName}</span>
+                        <span className="text-gray-400 text-xs">
+                          {relation.type === 'PARENT_CHILD' ? '→' : '⟷'}
+                        </span>
+                        <span className="font-medium">{relation.toName}</span>
+                        <span className="ml-1 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                          {relation.type === 'PARENT_CHILD' ? 'Родитель' : 'Партнёр'}
+                        </span>
+                      </div>
+                      {canEditTree && (
+                        <button
+                          onClick={() => handleDeleteRelation(relation.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
+                          title="Удалить связь"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                   {relations.length === 0 && (
@@ -1176,6 +1224,28 @@ export const TreePage = () => {
         </div>
       </Modal>
 
+      {deletingRelation !== null && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-xl">
+            <h3 className="font-semibold text-gray-900 mb-2">Удалить связь?</h3>
+            <p className="text-sm text-gray-500 mb-4">Это действие нельзя отменить</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeletingRelation(null)}
+                className="px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-md hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={confirmDeleteRelation}
+                className="px-3 py-1.5 text-sm text-white bg-red-500 rounded-md hover:bg-red-600"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
