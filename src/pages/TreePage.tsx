@@ -33,6 +33,8 @@ import {
   CircleDot,
   Download,
   ChevronDown,
+  FileImage,
+  FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { personService, treeService } from '../api/trees';
@@ -808,16 +810,16 @@ export const TreePage = () => {
               <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 min-w-[160px] overflow-hidden">
                 <button
                   onClick={exportToPng}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 w-full text-left"
                 >
-                  <span>🖼</span>
+                  <FileImage className="w-4 h-4 text-gray-500" />
                   <span>Экспорт в PNG</span>
                 </button>
                 <button
                   onClick={exportToPdf}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 w-full text-left"
                 >
-                  <span>📄</span>
+                  <FileText className="w-4 h-4 text-gray-500" />
                   <span>Экспорт в PDF</span>
                 </button>
               </div>
