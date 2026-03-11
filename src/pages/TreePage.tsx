@@ -176,7 +176,8 @@ const NODE_HEIGHT = 80;
 function getLayoutedElements(
   nodes: Node[],
   edges: Edge[],
-  mode: LayoutMode
+  mode: LayoutMode,
+  personsList: Person[] = []
 ): { nodes: Node[]; edges: Edge[] } {
   if (nodes.length === 0) return { nodes, edges };
 
@@ -239,6 +240,40 @@ function getLayoutedElements(
     }
     return node;
   });
+
+  // Post-process: enforce male-left/female-right (TB) or male-top/female-bottom (LR)
+  // for each couple node, find the two partner person nodes and swap positions if needed
+  if (personsList.length > 0) {
+    const isTB = mode === 'TB';
+    const coord = isTB ? 'x' : 'y';
+
+    const coupleNodes = finalNodes.filter(n => n.type === 'coupleNode');
+    coupleNodes.forEach(cn => {
+      const partnerEdges = edges.filter(e => e.target === cn.id);
+      if (partnerEdges.length !== 2) return;
+
+      const partnerNode0 = finalNodes.find(n => n.id === partnerEdges[0].source);
+      const partnerNode1 = finalNodes.find(n => n.id === partnerEdges[1].source);
+      if (!partnerNode0 || !partnerNode1) return;
+
+      const person0 = personsList.find(p => String(p.id) === partnerNode0.id);
+      const person1 = personsList.find(p => String(p.id) === partnerNode1.id);
+      if (!person0 || !person1) return;
+
+      // Determine which node should be male (left/top) and which female (right/bottom)
+      const maleNode = person0.gender === 'MALE' ? partnerNode0 : (person1.gender === 'MALE' ? partnerNode1 : null);
+      const femaleNode = person0.gender === 'FEMALE' ? partnerNode0 : (person1.gender === 'FEMALE' ? partnerNode1 : null);
+
+      if (!maleNode || !femaleNode) return;
+
+      // Swap positions if male is not in the left/top position
+      if (maleNode.position[coord] > femaleNode.position[coord]) {
+        const tmpPos = { ...maleNode.position };
+        maleNode.position = { ...femaleNode.position };
+        femaleNode.position = tmpPos;
+      }
+    });
+  }
 
   return { nodes: finalNodes, edges };
 }
@@ -552,10 +587,20 @@ export const TreePage = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(filteredNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(filteredEdges);
 
+  // Validation: same-gender partnership is not allowed
+  const isSameGenderPartnership = useMemo(() => {
+    if (relType !== 'PARTNERSHIP') return false;
+    if (!selectedPerson1 || !selectedPerson2) return false;
+    const p1 = persons.find(p => p.id === Number(selectedPerson1));
+    const p2 = persons.find(p => p.id === Number(selectedPerson2));
+    if (!p1 || !p2) return false;
+    return p1.gender === p2.gender && !!p1.gender && !!p2.gender;
+  }, [relType, selectedPerson1, selectedPerson2, persons]);
+
   useEffect(() => {
     if (filteredNodes.length > 0 || filteredEdges.length > 0) {
       try {
-        const { nodes: ln, edges: le } = getLayoutedElements(filteredNodes, filteredEdges, layoutMode);
+        const { nodes: ln, edges: le } = getLayoutedElements(filteredNodes, filteredEdges, layoutMode, personsList);
         setNodes(ln);
         setEdges(le);
       } catch (err) {
@@ -568,7 +613,7 @@ export const TreePage = () => {
       setNodes([]);
       setEdges([]);
     }
-  }, [filteredNodes, filteredEdges, layoutMode, setNodes, setEdges, persons.length]);
+  }, [filteredNodes, filteredEdges, layoutMode, personsList, setNodes, setEdges, persons.length]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -1144,6 +1189,12 @@ export const TreePage = () => {
             </select>
           </div>
 
+          {isSameGenderPartnership && (
+            <p className="text-sm text-red-500 mt-1">
+              Партнёрство возможно только между людьми разного пола
+            </p>
+          )}
+
           <div className="flex gap-3 justify-end pt-2">
             <button
               onClick={() => setAddRelModalOpen(false)}
@@ -1153,7 +1204,7 @@ export const TreePage = () => {
             </button>
             <button
               onClick={() => addRelMutation.mutate()}
-              disabled={!selectedPerson1 || !selectedPerson2 || addRelMutation.isPending}
+              disabled={isSameGenderPartnership || !selectedPerson1 || !selectedPerson2 || addRelMutation.isPending}
               className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {addRelMutation.isPending ? <Spinner size="sm" /> : null}
