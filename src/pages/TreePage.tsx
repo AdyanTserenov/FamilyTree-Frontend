@@ -30,7 +30,6 @@ import {
   GitBranch,
   AlignCenter,
   AlignLeft,
-  CircleDot,
   Download,
   ChevronDown,
   FileImage,
@@ -93,7 +92,6 @@ const PersonNode = ({ data }: NodeProps) => {
   const isMale = person.gender === 'MALE';
   const isFemale = person.gender === 'FEMALE';
   const isVertical = direction === 'TB';
-  const isRadial = direction === 'radial';
 
   return (
     <div
@@ -104,7 +102,7 @@ const PersonNode = ({ data }: NodeProps) => {
       {/* Target handle - receives from parent */}
       <Handle
         type="target"
-        position={isVertical || isRadial ? Position.Top : Position.Left}
+        position={isVertical ? Position.Top : Position.Left}
         id="parent-in"
         style={{ background: '#3b82f6', width: 8, height: 8 }}
       />
@@ -112,7 +110,7 @@ const PersonNode = ({ data }: NodeProps) => {
       {/* Source handle - sends to children */}
       <Handle
         type="source"
-        position={isVertical || isRadial ? Position.Bottom : Position.Right}
+        position={isVertical ? Position.Bottom : Position.Right}
         id="children-out"
         style={{ background: '#3b82f6', width: 8, height: 8 }}
       />
@@ -120,13 +118,13 @@ const PersonNode = ({ data }: NodeProps) => {
       {/* Partnership handles */}
       <Handle
         type="source"
-        position={isVertical ? Position.Right : (isRadial ? Position.Right : Position.Bottom)}
+        position={isVertical ? Position.Right : Position.Bottom}
         id="partner-right"
         style={{ background: '#ec4899', width: 8, height: 8 }}
       />
       <Handle
         type="target"
-        position={isVertical ? Position.Left : (isRadial ? Position.Left : Position.Top)}
+        position={isVertical ? Position.Left : Position.Top}
         id="partner-left"
         style={{ background: '#ec4899', width: 8, height: 8 }}
       />
@@ -170,121 +168,10 @@ const PersonNode = ({ data }: NodeProps) => {
 
 // ─── Layout helpers ───────────────────────────────────────────────────────────
 
-type LayoutMode = 'TB' | 'LR' | 'radial';
+type LayoutMode = 'TB' | 'LR';
 
 const NODE_WIDTH = 200;
 const NODE_HEIGHT = 80;
-
-// Radial fan layout: places root(s) at center, children fan out in concentric arcs
-function getRadialLayout(
-  nodes: Node[],
-  edges: Edge[]
-): { nodes: Node[]; edges: Edge[] } {
-  const RADIUS_STEP = 260; // px between levels
-  const RN_WIDTH = 180;
-  const RN_HEIGHT = 100;
-
-  // Build parent-child adjacency (only PARENT_CHILD edges, not couple edges)
-  const childrenMap: Record<string, string[]> = {};
-  const parentMap: Record<string, string> = {};
-
-  edges.forEach(edge => {
-    // Skip couple-node edges (they have 'couple' in their id)
-    if (edge.id.includes('couple') || edge.id.includes('partner')) return;
-    if (!childrenMap[edge.source]) childrenMap[edge.source] = [];
-    childrenMap[edge.source].push(edge.target);
-    parentMap[edge.target] = edge.source;
-  });
-
-  // Find root nodes (no parent) among person nodes
-  const personNodes = nodes.filter(n => n.type === 'personNode');
-  const roots = personNodes.filter(n => !parentMap[n.id]);
-  if (roots.length === 0) {
-    // Fallback: use first person node as root
-    if (personNodes.length === 0) return { nodes, edges };
-    roots.push(personNodes[0]);
-  }
-
-  const positions: Record<string, { x: number; y: number }> = {};
-
-  // Recursive fan placement; startAngle and endAngle in radians
-  const assignPositions = (
-    nodeId: string,
-    level: number,
-    startAngle: number,
-    endAngle: number
-  ) => {
-    const angle = (startAngle + endAngle) / 2;
-    const radius = level * RADIUS_STEP;
-
-    positions[nodeId] = {
-      x: Math.cos(angle) * radius - RN_WIDTH / 2,
-      y: Math.sin(angle) * radius - RN_HEIGHT / 2,
-    };
-
-    const children = childrenMap[nodeId] || [];
-    if (children.length === 0) return;
-
-    const angleStep = (endAngle - startAngle) / children.length;
-    children.forEach((childId, i) => {
-      assignPositions(
-        childId,
-        level + 1,
-        startAngle + i * angleStep,
-        startAngle + (i + 1) * angleStep
-      );
-    });
-  };
-
-  // Handle multiple roots by dividing the full circle
-  const anglePerRoot = (2 * Math.PI) / Math.max(roots.length, 1);
-  roots.forEach((root, i) => {
-    const startAngle = i * anglePerRoot - Math.PI / 2;
-    const endAngle = startAngle + anglePerRoot;
-    assignPositions(root.id, 0, startAngle, endAngle);
-  });
-
-  // For couple nodes: position them between their two partner nodes
-  const coupleNodes = nodes.filter(n => n.type === 'coupleNode');
-  coupleNodes.forEach(coupleNode => {
-    // Find the two person nodes connected to this couple node
-    const connectedEdges = edges.filter(
-      e => e.source === coupleNode.id || e.target === coupleNode.id
-    );
-    const connectedPersonIds = connectedEdges
-      .map(e => (e.source === coupleNode.id ? e.target : e.source))
-      .filter(id => positions[id]);
-
-    if (connectedPersonIds.length >= 2) {
-      const p1 = positions[connectedPersonIds[0]];
-      const p2 = positions[connectedPersonIds[1]];
-      positions[coupleNode.id] = {
-        x: (p1.x + p2.x) / 2,
-        y: (p1.y + p2.y) / 2,
-      };
-    } else if (connectedPersonIds.length === 1) {
-      const p = positions[connectedPersonIds[0]];
-      positions[coupleNode.id] = { x: p.x + 20, y: p.y + 20 };
-    }
-  });
-
-  // Apply positions, set direction: 'radial' in data for person nodes
-  const layoutedNodes = nodes.map(node => ({
-    ...node,
-    position: positions[node.id] ?? node.position,
-    data: node.type === 'personNode'
-      ? { ...node.data, direction: 'radial' }
-      : node.data,
-  }));
-
-  // Use straight edges in radial mode
-  const layoutedEdges = edges.map(edge => ({
-    ...edge,
-    type: 'straight',
-  }));
-
-  return { nodes: layoutedNodes, edges: layoutedEdges };
-}
 
 function getLayoutedElements(
   nodes: Node[],
@@ -292,10 +179,6 @@ function getLayoutedElements(
   mode: LayoutMode
 ): { nodes: Node[]; edges: Edge[] } {
   if (nodes.length === 0) return { nodes, edges };
-
-  if (mode === 'radial') {
-    return getRadialLayout(nodes, edges);
-  }
 
   // Dagre layout for vertical and horizontal
   const dagreGraph = new dagre.graphlib.Graph();
@@ -541,6 +424,9 @@ export const TreePage = () => {
         style: { stroke: '#3b82f6', strokeWidth: 2 },
         type: 'smoothstep',
         animated: false,
+        label: 'Родитель',
+        labelStyle: { fontSize: 11, fill: '#6b7280' },
+        labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
       });
     }
 
@@ -596,7 +482,7 @@ export const TreePage = () => {
   }, [persons, filters]);
 
   // Build filtered nodes/edges, passing through couple nodes whose both partners pass the filter
-  const { filteredNodes, filteredEdges, relations } = useMemo(() => {
+  const { filteredNodes, filteredEdges } = useMemo(() => {
     const allowedPersonIds = new Set(filteredPersonsForGraph.map(p => String(p.id)));
 
     // Keep person nodes that pass filter + couple nodes whose BOTH partners pass filter
@@ -627,52 +513,41 @@ export const TreePage = () => {
       };
     });
 
-    // Build person name map for relations panel
-    const personNameMap = new Map(filteredPersonsForGraph.map(p => [
-      String(p.id),
-      [p.firstName, p.lastName].filter(Boolean).join(' '),
-    ]));
-
-    // Derive relations from filteredEdges that connect person nodes (not couple nodes)
-    const seenRelIds = new Set<string>();
-    const relations: { id: string; fromName: string; toName: string; type: string; fromId: number; toId: number }[] = filteredEdges
-      .filter(e => !e.id.startsWith('edge-couple-') && !e.source.startsWith('couple-') && !e.target.startsWith('couple-'))
-      .filter(e => { if (seenRelIds.has(e.id)) return false; seenRelIds.add(e.id); return true; })
-      .map(e => ({
-        id: e.id,
-        fromName: personNameMap.get(e.source) ?? e.source,
-        toName: personNameMap.get(e.target) ?? e.target,
-        type: 'PARENT_CHILD' as string,
-        fromId: Number(e.source),
-        toId: Number(e.target),
-      }));
-
-    // Also add PARTNERSHIP relations from couple edges (one per couple node)
-    const seenCouples = new Set<string>();
-    filteredEdges
-      .filter(e => e.id.startsWith('edge-couple-') && e.label === 'Партнёр')
-      .forEach(e => {
-        const coupleId = e.target;
-        if (seenCouples.has(coupleId)) return;
-        seenCouples.add(coupleId);
-        // Find the second partner edge for this couple node
-        const partnerEdges = filteredEdges.filter(fe => fe.target === coupleId);
-        if (partnerEdges.length >= 2) {
-          const nameA = personNameMap.get(partnerEdges[0].source) ?? partnerEdges[0].source;
-          const nameB = personNameMap.get(partnerEdges[1].source) ?? partnerEdges[1].source;
-          relations.push({
-            id: coupleId,
-            fromName: nameA,
-            toName: nameB,
-            type: 'PARTNERSHIP',
-            fromId: Number(partnerEdges[0].source),
-            toId: Number(partnerEdges[1].source),
-          });
-        }
-      });
-
-    return { filteredNodes, filteredEdges, relations };
+    return { filteredNodes, filteredEdges };
   }, [initialNodes, initialEdges, filteredPersonsForGraph, filters.showPhotos, filters.showBirthPlace]);
+
+  // Build relations list from raw personsList relationships data
+  const personsList = useMemo<Person[]>(() => {
+    if (!graphData?.data) return [];
+    return Array.isArray(graphData.data) ? graphData.data : [];
+  }, [graphData]);
+
+  const relations = useMemo(() => {
+    const seen = new Set<number>();
+    const result: { id: string; fromName: string; toName: string; type: string; fromId: number; toId: number }[] = [];
+
+    personsList.forEach(person => {
+      (person.relationships ?? []).forEach(rel => {
+        if (seen.has(rel.id)) return;
+        seen.add(rel.id);
+
+        const fromId = rel.person1Id;
+        const toId = rel.person2Id;
+        const fromPerson = personsList.find(p => p.id === fromId);
+        const toPerson = personsList.find(p => p.id === toId);
+        result.push({
+          id: `${fromId}-${toId}-${rel.type}`,
+          fromId,
+          toId,
+          fromName: fromPerson ? `${fromPerson.firstName} ${fromPerson.lastName}` : String(fromId),
+          toName: toPerson ? `${toPerson.firstName} ${toPerson.lastName}` : 'Неизвестно',
+          type: rel.type,
+        });
+      });
+    });
+
+    return result;
+  }, [personsList]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(filteredNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(filteredEdges);
@@ -709,41 +584,47 @@ export const TreePage = () => {
   }, [exportMenuOpen]);
 
   const exportToPng = async () => {
-    const element = document.querySelector('.react-flow') as HTMLElement;
+    const element = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!element) return;
     toast.loading('Экспортируем...', { id: 'export' });
     try {
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
-        pixelRatio: 2,
+        width: element.scrollWidth,
+        height: element.scrollHeight,
       });
       const link = document.createElement('a');
       link.download = `${currentTree?.name || 'дерево'}-дерево.png`;
       link.href = dataUrl;
       link.click();
       toast.success('Файл сохранён', { id: 'export' });
-    } catch {
+    } catch (err) {
+      console.error('Export PNG failed:', err);
       toast.error('Ошибка экспорта', { id: 'export' });
     }
     setExportMenuOpen(false);
   };
 
   const exportToPdf = async () => {
-    const element = document.querySelector('.react-flow') as HTMLElement;
+    const element = document.querySelector('.react-flow__viewport') as HTMLElement;
     if (!element) return;
     toast.loading('Экспортируем...', { id: 'export' });
     try {
-      const dataUrl = await toPng(element, {
-        backgroundColor: '#ffffff',
-        pixelRatio: 2,
+      const dataUrl = await toPng(element, { backgroundColor: '#ffffff' });
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise(resolve => { img.onload = resolve; });
+
+      const pdf = new jsPDF({
+        orientation: img.width > img.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [img.width, img.height],
       });
-      const pdf = new jsPDF({ orientation: 'landscape', format: 'a4' });
-      const imgWidth = pdf.internal.pageSize.getWidth();
-      const imgHeight = pdf.internal.pageSize.getHeight();
-      pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.addImage(dataUrl, 'PNG', 0, 0, img.width, img.height);
       pdf.save(`${currentTree?.name || 'дерево'}-дерево.pdf`);
       toast.success('Файл сохранён', { id: 'export' });
-    } catch {
+    } catch (err) {
+      console.error('Export PDF failed:', err);
       toast.error('Ошибка экспорта', { id: 'export' });
     }
     setExportMenuOpen(false);
@@ -877,25 +758,13 @@ export const TreePage = () => {
               onClick={() => setLayoutMode('LR')}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
                 layoutMode === 'LR'
-                  ? 'text-gray-700 bg-gray-100 border-r border-gray-200'
-                  : 'text-gray-600 bg-white hover:bg-gray-50 border-r border-gray-200'
+                  ? 'text-gray-700 bg-gray-100'
+                  : 'text-gray-600 bg-white hover:bg-gray-50'
               }`}
               title="Горизонтальное дерево"
             >
               <AlignLeft className="w-4 h-4" />
               <span>Гориз.</span>
-            </button>
-            <button
-              onClick={() => setLayoutMode('radial')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors ${
-                layoutMode === 'radial'
-                  ? 'text-gray-700 bg-gray-100'
-                  : 'text-gray-600 bg-white hover:bg-gray-50'
-              }`}
-              title="Радиальное дерево"
-            >
-              <CircleDot className="w-4 h-4" />
-              <span>Радиал.</span>
             </button>
           </div>
 
