@@ -11,15 +11,19 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import type { Notification, NotificationType } from '../types';
 
 const notificationTypeLabel: Record<NotificationType, string> = {
-  INVITE: 'Приглашение',
-  COMMENT: 'Комментарий',
-  SYSTEM: 'Системное',
+  COMMENT_ADDED: 'Комментарий',
+  PERSON_ADDED: 'Новая персона',
+  PERSON_UPDATED: 'Обновление персоны',
+  MEMBER_JOINED: 'Новый участник',
+  INVITATION_SENT: 'Приглашение',
 };
 
 const notificationTypeVariant: Record<NotificationType, 'info' | 'success' | 'default'> = {
-  INVITE: 'info',
-  COMMENT: 'success',
-  SYSTEM: 'default',
+  COMMENT_ADDED: 'success',
+  PERSON_ADDED: 'success',
+  PERSON_UPDATED: 'default',
+  MEMBER_JOINED: 'info',
+  INVITATION_SENT: 'info',
 };
 
 export const NotificationsPage = () => {

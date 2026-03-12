@@ -173,8 +173,13 @@ export interface MediaFile {
   url: string;
 }
 
-// Notification types
-export type NotificationType = 'INVITE' | 'COMMENT' | 'SYSTEM';
+// Notification types — must match backend NotificationType enum exactly
+export type NotificationType =
+  | 'COMMENT_ADDED'
+  | 'PERSON_ADDED'
+  | 'PERSON_UPDATED'
+  | 'MEMBER_JOINED'
+  | 'INVITATION_SENT';
 
 export interface Notification {
   id: number;
