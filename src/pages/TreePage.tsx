@@ -628,15 +628,34 @@ export const TreePage = () => {
     return () => document.removeEventListener('click', handler);
   }, [exportMenuOpen]);
 
+  // Filter out cross-origin <img> elements to prevent canvas CORS taint (SecurityError).
+  // Avatars are loaded from https://storage.yandexcloud.net which does not send
+  // Access-Control-Allow-Origin headers for canvas usage, so we skip them entirely.
+  const exportImageFilter = (node: HTMLElement) => {
+    if (
+      node instanceof HTMLImageElement &&
+      node.src &&
+      node.src.startsWith('http') &&
+      !node.src.startsWith(window.location.origin)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
   const exportToPng = async () => {
     const element = document.querySelector('.react-flow__viewport') as HTMLElement;
-    if (!element) return;
+    if (!element) {
+      toast.error('Элемент дерева не найден', { id: 'export' });
+      return;
+    }
     toast.loading('Экспортируем...', { id: 'export' });
     try {
       const dataUrl = await toPng(element, {
         backgroundColor: '#ffffff',
-        width: element.scrollWidth,
-        height: element.scrollHeight,
+        cacheBust: true,
+        skipFonts: true,
+        filter: exportImageFilter,
       });
       const link = document.createElement('a');
       link.download = `${currentTree?.name || 'дерево'}-дерево.png`;
@@ -645,17 +664,25 @@ export const TreePage = () => {
       toast.success('Файл сохранён', { id: 'export' });
     } catch (err) {
       console.error('Export PNG failed:', err);
-      toast.error('Ошибка экспорта', { id: 'export' });
+      toast.error(`Ошибка экспорта: ${err instanceof Error ? err.message : String(err)}`, { id: 'export' });
     }
     setExportMenuOpen(false);
   };
 
   const exportToPdf = async () => {
     const element = document.querySelector('.react-flow__viewport') as HTMLElement;
-    if (!element) return;
+    if (!element) {
+      toast.error('Элемент дерева не найден', { id: 'export' });
+      return;
+    }
     toast.loading('Экспортируем...', { id: 'export' });
     try {
-      const dataUrl = await toPng(element, { backgroundColor: '#ffffff' });
+      const dataUrl = await toPng(element, {
+        backgroundColor: '#ffffff',
+        cacheBust: true,
+        skipFonts: true,
+        filter: exportImageFilter,
+      });
       const img = new Image();
       img.src = dataUrl;
       await new Promise(resolve => { img.onload = resolve; });
@@ -670,7 +697,7 @@ export const TreePage = () => {
       toast.success('Файл сохранён', { id: 'export' });
     } catch (err) {
       console.error('Export PDF failed:', err);
-      toast.error('Ошибка экспорта', { id: 'export' });
+      toast.error(`Ошибка экспорта: ${err instanceof Error ? err.message : String(err)}`, { id: 'export' });
     }
     setExportMenuOpen(false);
   };
