@@ -56,28 +56,43 @@ type PersonNodeData = {
 };
 
 // Invisible couple node — rendered as a small pink dot with connection handles
+// All 4 handles are present so edges can connect in both TB and LR layout modes
 const CoupleNode = () => (
   <div style={{ width: 8, height: 8, position: 'relative' }}>
-    {/* Accepts edges from left partner */}
+    {/* TB mode: accepts edge from left partner */}
     <Handle
       type="target"
       position={Position.Left}
       id="left"
-      style={{ background: '#ec4899', width: 6, height: 6, border: 'none', left: -3 }}
+      style={{ opacity: 0, width: 6, height: 6, border: 'none', left: -3 }}
     />
-    {/* Accepts edges from right partner */}
+    {/* TB mode: accepts edge from right partner */}
     <Handle
       type="target"
       position={Position.Right}
       id="right"
-      style={{ background: '#ec4899', width: 6, height: 6, border: 'none', right: -3 }}
+      style={{ opacity: 0, width: 6, height: 6, border: 'none', right: -3 }}
     />
-    {/* Sends edges to children */}
+    {/* TB mode: sends edges to children downward */}
     <Handle
       type="source"
       position={Position.Bottom}
       id="bottom"
-      style={{ background: '#ec4899', width: 6, height: 6, border: 'none', bottom: -3 }}
+      style={{ opacity: 0, width: 6, height: 6, border: 'none', bottom: -3 }}
+    />
+    {/* LR mode: accepts edge from top partner */}
+    <Handle
+      type="target"
+      position={Position.Top}
+      id="top"
+      style={{ opacity: 0, width: 6, height: 6, border: 'none', top: -3 }}
+    />
+    {/* LR mode: sends edges to children rightward */}
+    <Handle
+      type="source"
+      position={Position.Right}
+      id="right-out"
+      style={{ opacity: 0, width: 6, height: 6, border: 'none', right: -3 }}
     />
     {/* Visible pink dot */}
     <div style={{ width: 8, height: 8, background: '#ec4899', borderRadius: '50%' }} />
@@ -181,11 +196,12 @@ function getLayoutedElements(
 ): { nodes: Node[]; edges: Edge[] } {
   if (nodes.length === 0) return { nodes, edges };
 
-  // Dagre layout for vertical and horizontal
+  const isTB = mode === 'TB';
+
+  // ── Step 1: Run dagre on ALL nodes (CoupleNodes included) ──────────────────
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
-  const direction = mode === 'LR' ? 'LR' : 'TB';
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 });
+  dagreGraph.setGraph({ rankdir: mode, nodesep: 60, ranksep: 100 });
 
   nodes.forEach((node) => {
     const w = node.type === 'coupleNode' ? 8 : NODE_WIDTH;
@@ -194,7 +210,6 @@ function getLayoutedElements(
   });
 
   edges.forEach((edge) => {
-    // Guard: only add edge if both nodes exist in the graph
     if (dagreGraph.hasNode(edge.source) && dagreGraph.hasNode(edge.target)) {
       dagreGraph.setEdge(edge.source, edge.target);
     }
@@ -202,6 +217,7 @@ function getLayoutedElements(
 
   dagre.layout(dagreGraph);
 
+  // Map dagre positions for all nodes
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
     if (!nodeWithPosition) return node;
@@ -213,43 +229,70 @@ function getLayoutedElements(
         x: nodeWithPosition.x - w / 2,
         y: nodeWithPosition.y - h / 2,
       },
-      // Inject direction into person node data
+      // Inject direction into person node data so handles render correctly
       data: node.type === 'personNode'
         ? { ...node.data, direction: mode }
         : node.data,
     };
   });
 
-  // Post-process: center couple nodes between their two partners
+  // ── Step 2: Post-process CoupleNode positions ──────────────────────────────
+  // CoupleNode must sit at the midpoint between its two partners:
+  //   TB mode → same Y as partners, X = midpoint between them
+  //   LR mode → same X as partners, Y = midpoint between them
   const posMap = new Map(layoutedNodes.map(n => [n.id, n.position]));
+
+  // Identify partner edges: edges whose target is a coupleNode
+  const partnerEdgesByCouple = new Map<string, Edge[]>();
+  edges.forEach(e => {
+    const targetNode = nodes.find(n => n.id === e.target);
+    if (targetNode?.type === 'coupleNode') {
+      const arr = partnerEdgesByCouple.get(e.target) ?? [];
+      arr.push(e);
+      partnerEdgesByCouple.set(e.target, arr);
+    }
+  });
+
   const finalNodes = layoutedNodes.map(node => {
     if (node.type !== 'coupleNode') return node;
-    const partnerEdges = edges.filter(e => e.target === node.id);
+
+    const partnerEdges = partnerEdgesByCouple.get(node.id) ?? [];
     if (partnerEdges.length === 2) {
       const pos1 = posMap.get(partnerEdges[0].source);
       const pos2 = posMap.get(partnerEdges[1].source);
       if (pos1 && pos2) {
-        return {
-          ...node,
-          position: {
-            x: (pos1.x + pos2.x) / 2 + NODE_WIDTH / 2 - 4,
-            y: Math.min(pos1.y, pos2.y) + NODE_HEIGHT / 2 - 4,
-          },
-        };
+        if (isTB) {
+          // TB: partners are side-by-side → CoupleNode at same Y, X = midpoint
+          return {
+            ...node,
+            position: {
+              x: (pos1.x + pos2.x) / 2 + NODE_WIDTH / 2 - 4,
+              y: pos1.y + NODE_HEIGHT / 2 - 4,
+            },
+          };
+        } else {
+          // LR: partners are stacked vertically → CoupleNode at same X, Y = midpoint
+          return {
+            ...node,
+            position: {
+              x: pos1.x + NODE_WIDTH / 2 - 4,
+              y: (pos1.y + pos2.y) / 2 + NODE_HEIGHT / 2 - 4,
+            },
+          };
+        }
       }
     }
     return node;
   });
 
-  // Post-process: enforce male-left/female-right (TB) or male-top/female-bottom (LR)
-  // for each couple node, find the two partner person nodes and swap positions if needed
+  // ── Step 3: Enforce gender ordering ───────────────────────────────────────
+  // TB: male left (smaller x), female right (larger x)
+  // LR: male top (smaller y), female bottom (larger y)
   if (personsList.length > 0) {
-    const isTB = mode === 'TB';
     const coord = isTB ? 'x' : 'y';
 
-    const coupleNodes = finalNodes.filter(n => n.type === 'coupleNode');
-    coupleNodes.forEach(cn => {
-      const partnerEdges = edges.filter(e => e.target === cn.id);
+    finalNodes.filter(n => n.type === 'coupleNode').forEach(cn => {
+      const partnerEdges = partnerEdgesByCouple.get(cn.id) ?? [];
       if (partnerEdges.length !== 2) return;
 
       const partnerNode0 = finalNodes.find(n => n.id === partnerEdges[0].source);
@@ -260,13 +303,11 @@ function getLayoutedElements(
       const person1 = personsList.find(p => String(p.id) === partnerNode1.id);
       if (!person0 || !person1) return;
 
-      // Determine which node should be male (left/top) and which female (right/bottom)
       const maleNode = person0.gender === 'MALE' ? partnerNode0 : (person1.gender === 'MALE' ? partnerNode1 : null);
       const femaleNode = person0.gender === 'FEMALE' ? partnerNode0 : (person1.gender === 'FEMALE' ? partnerNode1 : null);
-
       if (!maleNode || !femaleNode) return;
 
-      // Swap positions if male is not in the left/top position
+      // Swap if male is not in the left/top position
       if (maleNode.position[coord] > femaleNode.position[coord]) {
         const tmpPos = { ...maleNode.position };
         maleNode.position = { ...femaleNode.position };
@@ -275,7 +316,71 @@ function getLayoutedElements(
     });
   }
 
-  return { nodes: finalNodes, edges };
+  // ── Step 4: Rewrite edge handles to match the current layout mode ──────────
+  // Partner edges (PersonNode → CoupleNode):
+  //   TB: person's partner-right → couple's left  (left partner)
+  //       person's partner-left  → couple's right (right partner, but we use partner-right for both sources
+  //       and differentiate by targetHandle)
+  //   LR: person's partner-right (bottom) → couple's top  (top partner)
+  //       person's partner-left  (top)    → couple's bottom (bottom partner, but we reuse handles)
+  //
+  // Children edges (CoupleNode → child PersonNode):
+  //   TB: couple's bottom → child's parent-in (top)
+  //   LR: couple's right-out → child's parent-in (left)
+  //
+  // Strategy: rebuild sourceHandle/targetHandle on every edge based on mode.
+  // Partner edges are identified by: target is a coupleNode.
+  // Children edges are identified by: source is a coupleNode.
+
+  const coupleNodeIds = new Set(nodes.filter(n => n.type === 'coupleNode').map(n => n.id));
+
+  // Build a position map from the final (post-gender-swap) nodes
+  const finalPosMap = new Map(finalNodes.map(n => [n.id, n.position]));
+
+  const layoutedEdges = edges.map(edge => {
+    // Partner edge: PersonNode → CoupleNode
+    if (coupleNodeIds.has(edge.target) && !coupleNodeIds.has(edge.source)) {
+      if (isTB) {
+        // Determine if this person is to the left or right of the couple node
+        const personPos = finalPosMap.get(edge.source);
+        const couplePos = finalPosMap.get(edge.target);
+        const isLeft = personPos && couplePos
+          ? (personPos.x + NODE_WIDTH / 2) <= (couplePos.x + 4)
+          : true;
+        return {
+          ...edge,
+          sourceHandle: 'partner-right',  // right side of person node in TB
+          targetHandle: isLeft ? 'left' : 'right',
+        };
+      } else {
+        // LR mode: partners are stacked vertically
+        // Determine if this person is above or below the couple node
+        const personPos = finalPosMap.get(edge.source);
+        const couplePos = finalPosMap.get(edge.target);
+        const isAbove = personPos && couplePos
+          ? (personPos.y + NODE_HEIGHT / 2) <= (couplePos.y + 4)
+          : true;
+        return {
+          ...edge,
+          sourceHandle: isAbove ? 'partner-right' : 'partner-left',  // bottom/top of person in LR
+          targetHandle: isAbove ? 'top' : 'bottom',
+        };
+      }
+    }
+
+    // Children edge: CoupleNode → PersonNode
+    if (coupleNodeIds.has(edge.source) && !coupleNodeIds.has(edge.target)) {
+      return {
+        ...edge,
+        sourceHandle: isTB ? 'bottom' : 'right-out',
+        targetHandle: 'parent-in',
+      };
+    }
+
+    return edge;
+  });
+
+  return { nodes: finalNodes, edges: layoutedEdges };
 }
 
 export const TreePage = () => {
