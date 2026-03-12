@@ -131,14 +131,16 @@ const PersonNode = ({ data }: NodeProps) => {
       />
 
       {/* Partnership handles */}
+      {/* Male (or non-female): exits RIGHT in TB, exits BOTTOM in LR */}
       <Handle
         type="source"
         position={isVertical ? Position.Right : Position.Bottom}
         id="partner-right"
         style={{ background: '#ec4899', width: 8, height: 8 }}
       />
+      {/* Female: exits LEFT in TB, exits TOP in LR */}
       <Handle
-        type="target"
+        type="source"
         position={isVertical ? Position.Left : Position.Top}
         id="partner-left"
         style={{ background: '#ec4899', width: 8, height: 8 }}
@@ -236,12 +238,6 @@ function getLayoutedElements(
     };
   });
 
-  // ── Step 2: Post-process CoupleNode positions ──────────────────────────────
-  // CoupleNode must sit at the midpoint between its two partners:
-  //   TB mode → same Y as partners, X = midpoint between them
-  //   LR mode → same X as partners, Y = midpoint between them
-  const posMap = new Map(layoutedNodes.map(n => [n.id, n.position]));
-
   // Identify partner edges: edges whose target is a coupleNode
   const partnerEdgesByCouple = new Map<string, Edge[]>();
   edges.forEach(e => {
@@ -253,50 +249,21 @@ function getLayoutedElements(
     }
   });
 
-  const finalNodes = layoutedNodes.map(node => {
-    if (node.type !== 'coupleNode') return node;
-
-    const partnerEdges = partnerEdgesByCouple.get(node.id) ?? [];
-    if (partnerEdges.length === 2) {
-      const pos1 = posMap.get(partnerEdges[0].source);
-      const pos2 = posMap.get(partnerEdges[1].source);
-      if (pos1 && pos2) {
-        if (isTB) {
-          // TB: partners are side-by-side → CoupleNode at same Y, X = midpoint
-          return {
-            ...node,
-            position: {
-              x: (pos1.x + pos2.x) / 2 + NODE_WIDTH / 2 - 4,
-              y: pos1.y + NODE_HEIGHT / 2 - 4,
-            },
-          };
-        } else {
-          // LR: partners are stacked vertically → CoupleNode at same X, Y = midpoint
-          return {
-            ...node,
-            position: {
-              x: pos1.x + NODE_WIDTH / 2 - 4,
-              y: (pos1.y + pos2.y) / 2 + NODE_HEIGHT / 2 - 4,
-            },
-          };
-        }
-      }
-    }
-    return node;
-  });
-
-  // ── Step 3: Enforce gender ordering ───────────────────────────────────────
+  // ── Step 2: Enforce gender ordering ───────────────────────────────────────
   // TB: male left (smaller x), female right (larger x)
   // LR: male top (smaller y), female bottom (larger y)
+  // Do this BEFORE computing CoupleNode positions so the couple sits between
+  // the final (post-swap) partner positions.
+  const genderOrderedNodes = [...layoutedNodes];
   if (personsList.length > 0) {
     const coord = isTB ? 'x' : 'y';
 
-    finalNodes.filter(n => n.type === 'coupleNode').forEach(cn => {
+    genderOrderedNodes.filter(n => n.type === 'coupleNode').forEach(cn => {
       const partnerEdges = partnerEdgesByCouple.get(cn.id) ?? [];
       if (partnerEdges.length !== 2) return;
 
-      const partnerNode0 = finalNodes.find(n => n.id === partnerEdges[0].source);
-      const partnerNode1 = finalNodes.find(n => n.id === partnerEdges[1].source);
+      const partnerNode0 = genderOrderedNodes.find(n => n.id === partnerEdges[0].source);
+      const partnerNode1 = genderOrderedNodes.find(n => n.id === partnerEdges[1].source);
       if (!partnerNode0 || !partnerNode1) return;
 
       const person0 = personsList.find(p => String(p.id) === partnerNode0.id);
@@ -316,13 +283,63 @@ function getLayoutedElements(
     });
   }
 
+  // ── Step 3: Post-process CoupleNode positions ──────────────────────────────
+  // CoupleNode must sit at the visual midpoint between its two partners.
+  // Use the gender-ordered positions (post-swap) so the couple is always
+  // centred between the final partner positions.
+  //
+  // ReactFlow positions are top-left corners, so we add NODE_WIDTH/2 (or
+  // NODE_HEIGHT/2) to get each partner's visual centre, then subtract half
+  // the CoupleNode size (4 px) to get its top-left corner.
+  //
+  //   TB mode: partners side-by-side → same Y row, X = midpoint of centres
+  //   LR mode: partners stacked     → same X col, Y = midpoint of centres
+  const finalPosMap = new Map(genderOrderedNodes.map(n => [n.id, n.position]));
+
+  const finalNodes = genderOrderedNodes.map(node => {
+    if (node.type !== 'coupleNode') return node;
+
+    const partnerEdges = partnerEdgesByCouple.get(node.id) ?? [];
+    if (partnerEdges.length === 2) {
+      const pos1 = finalPosMap.get(partnerEdges[0].source);
+      const pos2 = finalPosMap.get(partnerEdges[1].source);
+      if (pos1 && pos2) {
+        if (isTB) {
+          // TB: partners are side-by-side → CoupleNode at same Y, X = midpoint of visual centres
+          const partner1CenterX = pos1.x + NODE_WIDTH / 2;
+          const partner2CenterX = pos2.x + NODE_WIDTH / 2;
+          const midX = (partner1CenterX + partner2CenterX) / 2;
+          return {
+            ...node,
+            position: {
+              x: midX - 4,                          // subtract half of coupleNode width (8/2=4)
+              y: pos1.y + NODE_HEIGHT / 2 - 4,      // centre vertically on partner row
+            },
+          };
+        } else {
+          // LR: partners are stacked vertically → CoupleNode at same X, Y = midpoint of visual centres
+          const partner1CenterY = pos1.y + NODE_HEIGHT / 2;
+          const partner2CenterY = pos2.y + NODE_HEIGHT / 2;
+          const midY = (partner1CenterY + partner2CenterY) / 2;
+          return {
+            ...node,
+            position: {
+              x: pos1.x + NODE_WIDTH / 2 - 4,       // centre horizontally on partner column
+              y: midY - 4,                           // subtract half of coupleNode height (8/2=4)
+            },
+          };
+        }
+      }
+    }
+    return node;
+  });
+
   // ── Step 4: Rewrite edge handles to match the current layout mode ──────────
   // Partner edges (PersonNode → CoupleNode):
-  //   TB: person's partner-right → couple's left  (left partner)
-  //       person's partner-left  → couple's right (right partner, but we use partner-right for both sources
-  //       and differentiate by targetHandle)
-  //   LR: person's partner-right (bottom) → couple's top  (top partner)
-  //       person's partner-left  (top)    → couple's bottom (bottom partner, but we reuse handles)
+  //   TB: left person  uses partner-right (exits right) → couple's left handle
+  //       right person uses partner-left  (exits left)  → couple's right handle
+  //   LR: top person   uses partner-right (exits bottom) → couple's top handle
+  //       bottom person uses partner-left (exits top)    → couple's bottom handle
   //
   // Children edges (CoupleNode → child PersonNode):
   //   TB: couple's bottom → child's parent-in (top)
@@ -331,17 +348,17 @@ function getLayoutedElements(
   // Strategy: rebuild sourceHandle/targetHandle on every edge based on mode.
   // Partner edges are identified by: target is a coupleNode.
   // Children edges are identified by: source is a coupleNode.
+  // finalPosMap is already built above (Step 3) from the gender-ordered nodes.
 
   const coupleNodeIds = new Set(nodes.filter(n => n.type === 'coupleNode').map(n => n.id));
-
-  // Build a position map from the final (post-gender-swap) nodes
-  const finalPosMap = new Map(finalNodes.map(n => [n.id, n.position]));
 
   const layoutedEdges = edges.map(edge => {
     // Partner edge: PersonNode → CoupleNode
     if (coupleNodeIds.has(edge.target) && !coupleNodeIds.has(edge.source)) {
       if (isTB) {
-        // Determine if this person is to the left or right of the couple node
+        // Determine if this person is to the left or right of the couple node.
+        // Left person  → exits RIGHT (partner-right), enters couple from left.
+        // Right person → exits LEFT  (partner-left),  enters couple from right.
         const personPos = finalPosMap.get(edge.source);
         const couplePos = finalPosMap.get(edge.target);
         const isLeft = personPos && couplePos
@@ -349,12 +366,13 @@ function getLayoutedElements(
           : true;
         return {
           ...edge,
-          sourceHandle: 'partner-right',  // right side of person node in TB
+          sourceHandle: isLeft ? 'partner-right' : 'partner-left',
           targetHandle: isLeft ? 'left' : 'right',
         };
       } else {
-        // LR mode: partners are stacked vertically
-        // Determine if this person is above or below the couple node
+        // LR mode: partners are stacked vertically.
+        // Top person    → exits BOTTOM (partner-right), enters couple from top.
+        // Bottom person → exits TOP    (partner-left),  enters couple from bottom.
         const personPos = finalPosMap.get(edge.source);
         const couplePos = finalPosMap.get(edge.target);
         const isAbove = personPos && couplePos
@@ -362,7 +380,7 @@ function getLayoutedElements(
           : true;
         return {
           ...edge,
-          sourceHandle: isAbove ? 'partner-right' : 'partner-left',  // bottom/top of person in LR
+          sourceHandle: isAbove ? 'partner-right' : 'partner-left',
           targetHandle: isAbove ? 'top' : 'bottom',
         };
       }
