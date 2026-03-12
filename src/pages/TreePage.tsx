@@ -56,7 +56,7 @@ type PersonNodeData = {
 };
 
 // Invisible couple node — rendered as a small pink dot with connection handles
-// All 4 handles are present so edges can connect in both TB and LR layout modes
+// All handles are present so edges can connect in both TB and LR layout modes
 const CoupleNode = () => (
   <div style={{ width: 8, height: 8, position: 'relative' }}>
     {/* TB mode: accepts edge from left partner */}
@@ -80,12 +80,19 @@ const CoupleNode = () => (
       id="bottom"
       style={{ opacity: 0, width: 6, height: 6, border: 'none', bottom: -3 }}
     />
-    {/* LR mode: accepts edge from top partner */}
+    {/* LR mode: accepts edge from top partner (male) */}
     <Handle
       type="target"
       position={Position.Top}
       id="top"
       style={{ opacity: 0, width: 6, height: 6, border: 'none', top: -3 }}
+    />
+    {/* LR mode: accepts edge from bottom partner (female) */}
+    <Handle
+      type="target"
+      position={Position.Bottom}
+      id="bottom-in"
+      style={{ opacity: 0, width: 6, height: 6, border: 'none', bottom: -3 }}
     />
     {/* LR mode: sends edges to children rightward */}
     <Handle
@@ -317,14 +324,14 @@ function getLayoutedElements(
             },
           };
         } else {
-          // LR: partners are stacked vertically → CoupleNode at same X, Y = midpoint of visual centres
+          // LR: partners are stacked vertically → CoupleNode to the right of partners, Y = midpoint of visual centres
           const partner1CenterY = pos1.y + NODE_HEIGHT / 2;
           const partner2CenterY = pos2.y + NODE_HEIGHT / 2;
           const midY = (partner1CenterY + partner2CenterY) / 2;
           return {
             ...node,
             position: {
-              x: pos1.x + NODE_WIDTH / 2 - 4,       // centre horizontally on partner column
+              x: pos1.x + NODE_WIDTH + 40,           // to the right of partners, with gap
               y: midY - 4,                           // subtract half of coupleNode height (8/2=4)
             },
           };
@@ -352,6 +359,19 @@ function getLayoutedElements(
 
   const coupleNodeIds = new Set(nodes.filter(n => n.type === 'coupleNode').map(n => n.id));
 
+  // For LR mode: collect partner edges per couple to determine top/bottom partner
+  // We need to know which of the two partners has smaller y (top = male) and larger y (bottom = female)
+  const partnerEdgesForLR = new Map<string, Edge[]>();
+  if (!isTB) {
+    edges.forEach(edge => {
+      if (coupleNodeIds.has(edge.target) && !coupleNodeIds.has(edge.source)) {
+        const arr = partnerEdgesForLR.get(edge.target) ?? [];
+        arr.push(edge);
+        partnerEdgesForLR.set(edge.target, arr);
+      }
+    });
+  }
+
   const layoutedEdges = edges.map(edge => {
     // Partner edge: PersonNode → CoupleNode
     if (coupleNodeIds.has(edge.target) && !coupleNodeIds.has(edge.source)) {
@@ -371,8 +391,46 @@ function getLayoutedElements(
         };
       } else {
         // LR mode: partners are stacked vertically.
-        // Top person    → exits BOTTOM (partner-right), enters couple from top.
-        // Bottom person → exits TOP    (partner-left),  enters couple from bottom.
+        // Top partner (smaller y)    → exits BOTTOM (partner-right), enters couple from top.
+        // Bottom partner (larger y)  → exits TOP    (partner-left),  enters couple from bottom.
+        const couplePartnerEdges = partnerEdgesForLR.get(edge.target) ?? [];
+        const partner1Edge = couplePartnerEdges[0];
+        const partner2Edge = couplePartnerEdges[1];
+
+        if (partner1Edge && partner2Edge) {
+          const pos1 = finalPosMap.get(partner1Edge.source);
+          const pos2 = finalPosMap.get(partner2Edge.source);
+
+          // Determine top partner (smaller y) and bottom partner (larger y)
+          const topPartnerEdge = (pos1 && pos2 && pos1.y <= pos2.y) ? partner1Edge : partner2Edge;
+          const isTopPartner = edge.source === topPartnerEdge.source;
+
+          if (isTopPartner) {
+            // Top partner (male): exits Bottom of card → enters couple from Top
+            return {
+              ...edge,
+              sourceHandle: 'partner-right',
+              targetHandle: 'top',
+              type: 'straight',
+              style: { stroke: '#ec4899', strokeDasharray: '5,5', strokeWidth: 2 },
+              label: 'Партнёр',
+              labelStyle: { fontSize: 11, fill: '#6b7280' },
+              labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+            };
+          } else {
+            // Bottom partner (female): exits Top of card → enters couple from Bottom
+            return {
+              ...edge,
+              sourceHandle: 'partner-left',
+              targetHandle: 'bottom-in',
+              type: 'straight',
+              style: { stroke: '#ec4899', strokeDasharray: '5,5', strokeWidth: 2 },
+              label: undefined,
+            };
+          }
+        }
+
+        // Fallback: use position-based check
         const personPos = finalPosMap.get(edge.source);
         const couplePos = finalPosMap.get(edge.target);
         const isAbove = personPos && couplePos
@@ -381,18 +439,34 @@ function getLayoutedElements(
         return {
           ...edge,
           sourceHandle: isAbove ? 'partner-right' : 'partner-left',
-          targetHandle: isAbove ? 'top' : 'bottom',
+          targetHandle: isAbove ? 'top' : 'bottom-in',
+          type: 'straight',
+          style: { stroke: '#ec4899', strokeDasharray: '5,5', strokeWidth: 2 },
         };
       }
     }
 
     // Children edge: CoupleNode → PersonNode
     if (coupleNodeIds.has(edge.source) && !coupleNodeIds.has(edge.target)) {
-      return {
-        ...edge,
-        sourceHandle: isTB ? 'bottom' : 'right-out',
-        targetHandle: 'parent-in',
-      };
+      if (isTB) {
+        return {
+          ...edge,
+          sourceHandle: 'bottom',
+          targetHandle: 'parent-in',
+        };
+      } else {
+        // LR mode: couple's right-out → child's parent-in (left side of child card)
+        return {
+          ...edge,
+          sourceHandle: 'right-out',
+          targetHandle: 'parent-in',
+          type: 'smoothstep',
+          style: { stroke: '#3b82f6', strokeWidth: 2 },
+          label: 'Родитель',
+          labelStyle: { fontSize: 11, fill: '#6b7280' },
+          labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+        };
+      }
     }
 
     return edge;
