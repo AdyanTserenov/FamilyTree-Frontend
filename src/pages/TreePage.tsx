@@ -513,7 +513,8 @@ export const TreePage = () => {
           type: 'straight',
           animated: false,
           label: 'Партнёр',
-          labelStyle: { fontSize: 10, fill: '#ec4899' },
+          labelStyle: { fontSize: 11, fill: '#6b7280' },
+          labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
         });
 
         // Edge from person B (person2Id) to couple node — enters from the right

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, TreePine, Users, Trash2, Edit2, MoreVertical, Copy, Check } from 'lucide-react';
+import { Plus, TreePine, Users, Trash2, Edit2, MoreVertical, Copy, Check, RefreshCw, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { treeService } from '../api/trees';
 import { useAuthStore } from '../store/authStore';
@@ -626,8 +626,8 @@ export const DashboardPage = () => {
                     onClick={handleRegeneratePublicLink}
                     className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
                   >
-                    🔄 Создать новую ссылку
-                    <span className="text-orange-500 ml-1">⚠ Старая перестанет работать</span>
+                    <RefreshCw className="w-3.5 h-3.5" /> Создать новую ссылку
+                    <span className="text-orange-500 ml-1 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Старая перестанет работать</span>
                   </button>
                 </div>
               )}
