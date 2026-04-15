@@ -114,6 +114,8 @@ const HistoryTab = ({ treeId, personId }: { treeId: number; personId: number }) 
   );
 };
 
+const MAX_MEDIA_FILES = 10;
+
 export const PersonPage = () => {
   const { treeId, personId } = useParams<{ treeId: string; personId: string }>();
   const navigate = useNavigate();
@@ -704,7 +706,7 @@ export const PersonPage = () => {
               {canEditTree && (
                 <label
                   className={`flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-xl transition-colors ${
-                    mediaFiles.length >= 50
+                    mediaFiles.length >= MAX_MEDIA_FILES
                       ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-50 cursor-not-allowed'
                       : 'border-gray-300 cursor-pointer hover:border-green-400 hover:bg-green-50 text-gray-600 hover:text-green-600'
                   }`}
@@ -716,7 +718,7 @@ export const PersonPage = () => {
                     className="hidden"
                     onChange={handleMediaUpload}
                     accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
-                    disabled={mediaFiles.length >= 50}
+                    disabled={mediaFiles.length >= MAX_MEDIA_FILES}
                   />
                   {uploadMediaMutation.isPending && <Spinner size="sm" />}
                 </label>
@@ -725,9 +727,9 @@ export const PersonPage = () => {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-gray-500">
                   Файлов: <span className="font-medium text-gray-700">{mediaFiles.length}</span>{' '}
-                  из <span className="font-medium text-gray-700">50</span>
+                  из <span className="font-medium text-gray-700">{MAX_MEDIA_FILES}</span>
                 </span>
-                {mediaFiles.length >= 50 && (
+                {mediaFiles.length >= MAX_MEDIA_FILES && (
                   <span className="text-xs text-red-500">Достигнут лимит файлов</span>
                 )}
               </div>
