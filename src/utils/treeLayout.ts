@@ -193,7 +193,7 @@ export function getLayoutedElements(
     const singlesAtGen: string[] = [];
     const assignedToCouple = new Set<string>();
 
-    for (const [coupleId, partners] of couplePartners) {
+    for (const [, partners] of couplePartners) {
       const atThisGen = partners.filter(p => generation.get(p) === gen);
       if (atThisGen.length === 2) {
         // Order: male first, then female (or keep original order)
