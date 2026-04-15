@@ -251,9 +251,13 @@ export const TreePage = () => {
 
   const members: TreeMember[] = membersData?.data ?? [];
 
-  // Navigate to person on node click
+  // ID of the person selected for ancestor/descendant filtering (separate from navigation)
+  const [filterPersonId, setFilterPersonId] = useState<string | null>(null);
+
+  // Navigate to person on node click; also set filterPersonId for ancestor/descendant filters
   const handlePersonClick = useCallback(
     (person: Person) => {
+      setFilterPersonId(String(person.id));
       navigate(`/trees/${treeIdNum}/persons/${person.id}`);
     },
     [navigate, treeIdNum]
@@ -406,6 +410,55 @@ export const TreePage = () => {
   const filteredPersonsForGraph = useMemo(() => {
     let result = persons;
 
+    // Ancestor/descendant filters — only apply when a person is selected
+    if (filterPersonId && (filters.onlyAncestors || filters.onlyDescendants)) {
+      // Collect all unique PARENT_CHILD relationships from persons (same data as personsList)
+      const seenRelIds = new Set<number>();
+      const parentChildRels: { person1Id: number; person2Id: number }[] = [];
+      for (const p of persons) {
+        for (const r of p.relationships ?? []) {
+          if (r.type === 'PARENT_CHILD' && !seenRelIds.has(r.id)) {
+            seenRelIds.add(r.id);
+            parentChildRels.push({ person1Id: r.person1Id, person2Id: r.person2Id });
+          }
+        }
+      }
+
+      const selectedId = Number(filterPersonId);
+      const resultSet = new Set<number>();
+      resultSet.add(selectedId);
+
+      if (filters.onlyAncestors) {
+        // BFS upward: find all ancestors of selectedId
+        // PARENT_CHILD: person1Id = parent, person2Id = child
+        const queue: number[] = [selectedId];
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          for (const rel of parentChildRels) {
+            if (rel.person2Id === current && !resultSet.has(rel.person1Id)) {
+              resultSet.add(rel.person1Id);
+              queue.push(rel.person1Id);
+            }
+          }
+        }
+      } else if (filters.onlyDescendants) {
+        // BFS downward: find all descendants of selectedId
+        // PARENT_CHILD: person1Id = parent, person2Id = child
+        const queue: number[] = [selectedId];
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          for (const rel of parentChildRels) {
+            if (rel.person1Id === current && !resultSet.has(rel.person2Id)) {
+              resultSet.add(rel.person2Id);
+              queue.push(rel.person2Id);
+            }
+          }
+        }
+      }
+
+      result = result.filter(p => resultSet.has(p.id));
+    }
+
     // Gender filter
     if (filters.gender !== 'all') {
       result = result.filter(p => p.gender === filters.gender);
@@ -430,7 +483,7 @@ export const TreePage = () => {
     }
 
     return result;
-  }, [persons, filters]);
+  }, [persons, filters, filterPersonId]);
 
   // Build filtered nodes/edges, passing through couple nodes whose both partners pass the filter
   const { filteredNodes, filteredEdges } = useMemo(() => {
