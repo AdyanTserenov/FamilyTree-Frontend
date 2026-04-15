@@ -26,19 +26,19 @@ export default defineConfig({
     proxy: {
       // /api/auth/* → auth-service:8081/auth/*
       '/api/auth': {
-        target: 'http://localhost:8081',
+        target: 'http://158.160.55.234:8081',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/auth/, '/auth'),
       },
       // /api/profile → auth-service:8081/profile
       '/api/profile': {
-        target: 'http://localhost:8081',
+        target: 'http://158.160.55.234:8081',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/profile/, '/profile'),
       },
       // /api/* → tree-service:8080/*
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://158.160.55.234:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
