@@ -29,7 +29,7 @@ const notificationTypeVariant: Record<NotificationType, 'info' | 'success' | 'de
 export const NotificationsPage = () => {
   usePageTitle('Уведомления');
   const queryClient = useQueryClient();
-  const { notifications, markAsRead, markAllAsRead, removeNotification, unreadCount } =
+  const { notifications, markAsRead, unmarkAsRead, markAllAsRead, removeNotification, unreadCount } =
     useNotificationStore();
 
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -39,10 +39,10 @@ export const NotificationsPage = () => {
 
   const markReadMutation = useMutation({
     mutationFn: (id: number) => notificationService.markAsRead(id),
-    onSuccess: (_, id) => {
-      markAsRead(id);
+    onError: (_err, id) => {
+      unmarkAsRead(id);
+      toast.error('Не удалось отметить уведомление как прочитанное');
     },
-    onError: () => toast.error('Ошибка'),
   });
 
   const markAllReadMutation = useMutation({
@@ -65,6 +65,7 @@ export const NotificationsPage = () => {
 
   const handleMarkRead = (notification: Notification) => {
     if (!notification.read) {
+      markAsRead(notification.id);
       markReadMutation.mutate(notification.id);
     }
   };

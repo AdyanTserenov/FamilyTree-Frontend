@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { PrivateRoute } from './components/PrivateRoute';
 import { Layout } from './components/Layout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -45,8 +46,8 @@ function App() {
           <Route element={<PrivateRoute />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/trees/:treeId" element={<TreePage />} />
-              <Route path="/trees/:treeId/persons/:personId" element={<PersonPage />} />
+              <Route path="/trees/:treeId" element={<ErrorBoundary><TreePage /></ErrorBoundary>} />
+              <Route path="/trees/:treeId/persons/:personId" element={<ErrorBoundary><PersonPage /></ErrorBoundary>} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>

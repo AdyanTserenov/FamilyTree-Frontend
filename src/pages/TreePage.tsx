@@ -207,7 +207,8 @@ export const TreePage = () => {
   const [addPersonModalOpen, setAddPersonModalOpen] = useState(false);
   const [addRelModalOpen, setAddRelModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedPerson1, setSelectedPerson1] = useState<number | ''>('');
   const [selectedPerson2, setSelectedPerson2] = useState<number | ''>('');
   const [relType, setRelType] = useState<RelationshipType>('PARENT_CHILD');
@@ -596,6 +597,14 @@ export const TreePage = () => {
     [setEdges]
   );
 
+  // Debounce: update debouncedSearch 300ms after inputValue changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
+
   // Close export menu on outside click
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -750,12 +759,12 @@ export const TreePage = () => {
     }
   }
 
-  // Search
-  const filteredPersons = searchQuery
+  // Search — uses debounced value so filtering doesn't run on every keystroke
+  const filteredPersons = debouncedSearch
     ? persons.filter((p) =>
         `${p.firstName} ${p.lastName} ${p.middleName ?? ''}`
           .toLowerCase()
-          .includes(searchQuery.toLowerCase())
+          .includes(debouncedSearch.toLowerCase())
       )
     : [];
 
@@ -820,19 +829,20 @@ export const TreePage = () => {
           <div className="relative hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
               placeholder="Поиск персоны..."
               className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 w-48"
             />
-            {searchQuery && filteredPersons.length > 0 && (
+            {inputValue && filteredPersons.length > 0 && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 w-64 max-h-48 overflow-y-auto">
                 {filteredPersons.map((p) => (
                   <button
                     key={p.id}
                     onClick={() => {
                       navigate(`/trees/${treeIdNum}/persons/${p.id}`);
-                      setSearchQuery('');
+                      setInputValue('');
+                      setDebouncedSearch('');
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-gray-700"
                   >
