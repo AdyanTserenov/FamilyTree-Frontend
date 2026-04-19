@@ -74,6 +74,11 @@ export const treeService = {
     const response = await treeApi.get<ApiResponse<Person[]>>(`/trees/public/${token}`);
     return response.data;
   },
+
+  getMyRole: async (treeId: number): Promise<ApiResponse<string>> => {
+    const res = await treeApi.get(`/trees/${treeId}/my-role`);
+    return res.data;
+  },
 };
 
 // Persons

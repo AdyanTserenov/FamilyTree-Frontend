@@ -225,14 +225,21 @@ export const TreePage = () => {
     biography: '',
   });
 
-  // Fetch trees to get current tree info
+  // Fetch trees to get current tree name (for header and export filenames)
   const { data: treesData } = useQuery({
     queryKey: ['trees'],
     queryFn: () => treeService.getTrees(),
   });
   const currentTree = treesData?.data?.find((t) => t.id === treeIdNum);
   usePageTitle(currentTree?.name);
-  const userRole = currentTree?.role as TreeRole | undefined;
+
+  // Fetch current user's role via dedicated endpoint (avoids loading all trees just for role)
+  const { data: roleData } = useQuery({
+    queryKey: ['treeRole', treeIdNum],
+    queryFn: () => treeService.getMyRole(treeIdNum),
+    enabled: !!treeIdNum,
+  });
+  const userRole = roleData?.data as TreeRole | undefined;
   const canEditTree = canEdit(userRole);
 
   // Fetch graph data
