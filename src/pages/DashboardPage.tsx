@@ -213,16 +213,13 @@ export const DashboardPage = () => {
     revokePublicLinkMutation.mutate(selectedTree.id);
   };
 
-  const handleRegeneratePublicLink = async () => {
+  const handleRegeneratePublicLink = () => {
     if (!selectedTree) return;
-    try {
-      await treeService.revokePublicLink(selectedTree.id);
-      await treeService.generatePublicLink(selectedTree.id);
-      queryClient.invalidateQueries({ queryKey: ['trees'] });
-      toast.success('Новая ссылка создана');
-    } catch {
-      toast.error('Ошибка создания новой ссылки');
-    }
+    revokePublicLinkMutation.mutate(selectedTree.id, {
+      onSuccess: () => {
+        generatePublicLinkMutation.mutate(selectedTree.id);
+      },
+    });
   };
 
   const handleCopyPublicLink = async (token: string) => {
@@ -371,13 +368,15 @@ export const DashboardPage = () => {
                 </button>
                 {openMenuId === tree.id && (
                   <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[160px] py-1">
-                    <button
-                      onClick={() => openInviteModal(tree)}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <Users className="w-4 h-4" />
-                      Пригласить
-                    </button>
+                    {tree.role === 'OWNER' && (
+                      <button
+                        onClick={() => openInviteModal(tree)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        <Users className="w-4 h-4" />
+                        Пригласить
+                      </button>
+                    )}
                     {tree.role === 'OWNER' && (
                       <>
                         <button
@@ -624,7 +623,8 @@ export const DashboardPage = () => {
                   </div>
                   <button
                     onClick={handleRegeneratePublicLink}
-                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors"
+                    disabled={revokePublicLinkMutation.isPending || generatePublicLinkMutation.isPending}
+                    className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Создать новую ссылку
                     <span className="text-orange-500 ml-1 flex items-center gap-1"><AlertTriangle className="w-3.5 h-3.5" /> Старая перестанет работать</span>

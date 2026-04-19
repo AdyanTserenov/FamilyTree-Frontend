@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../store/authStore';
 import {
   Edit2,
   Trash2,
@@ -120,6 +121,8 @@ export const PersonPage = () => {
   const { treeId, personId } = useParams<{ treeId: string; personId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const currentUserId = user?.id;
   const treeIdNum = Number(treeId);
   const personIdNum = Number(personId);
 
@@ -653,25 +656,29 @@ export const PersonPage = () => {
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() =>
-                              setEditingComment({
-                                id: comment.id,
-                                content: comment.content,
-                              })
-                            }
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Редактировать"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => deleteCommentMutation.mutate(comment.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Удалить"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          {comment.authorId === currentUserId && (
+                            <>
+                              <button
+                                onClick={() =>
+                                  setEditingComment({
+                                    id: comment.id,
+                                    content: comment.content,
+                                  })
+                                }
+                                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                title="Редактировать"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => deleteCommentMutation.mutate(comment.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Удалить"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
 
