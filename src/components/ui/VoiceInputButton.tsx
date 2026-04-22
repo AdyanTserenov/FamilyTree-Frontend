@@ -26,7 +26,23 @@ export const VoiceInputButton = ({
   });
 
   if (!isSupported) {
-    return null;
+    return (
+      <div className="relative inline-flex items-center">
+        <button
+          type="button"
+          disabled
+          title="Голосовой ввод недоступен в этом браузере"
+          className={[
+            'flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200',
+            'bg-gray-100 text-gray-400 opacity-40 cursor-not-allowed',
+            className,
+          ].join(' ')}
+        >
+          <Mic className="w-4 h-4" />
+        </button>
+        <span className="sr-only">Голосовой ввод</span>
+      </div>
+    );
   }
 
   return (

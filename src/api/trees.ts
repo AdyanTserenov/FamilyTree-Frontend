@@ -25,8 +25,8 @@ export const treeService = {
     return response.data;
   },
 
-  createTree: async (name: string): Promise<ApiResponse<Tree>> => {
-    const response = await treeApi.post<ApiResponse<Tree>>('/trees', { name });
+  createTree: async (name: string, description?: string): Promise<ApiResponse<Tree>> => {
+    const response = await treeApi.post<ApiResponse<Tree>>('/trees', { name, description });
     return response.data;
   },
 

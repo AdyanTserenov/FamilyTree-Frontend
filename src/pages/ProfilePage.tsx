@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Mail, Lock, CheckCircle, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Mail, Lock, CheckCircle, AlertCircle, Trash2, AlertTriangle, BarChart2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../api/auth';
+import { treeService } from '../api/trees';
 import { useAuthStore } from '../store/authStore';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
@@ -40,6 +41,22 @@ export const ProfilePage = () => {
   const [activeSection, setActiveSection] = useState<'profile' | 'password'>('profile');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [stats, setStats] = useState<{ treeCount: number; personCount: number } | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await treeService.getTrees();
+        const trees = response.data ?? [];
+        const treeCount = trees.length;
+        const personCount = trees.reduce((sum, t) => sum + (t.personCount ?? 0), 0);
+        setStats({ treeCount, personCount });
+      } catch {
+        // ignore stats fetch errors
+      }
+    };
+    fetchStats();
+  }, []);
 
   const {
     register: registerProfile,
@@ -170,6 +187,24 @@ export const ProfilePage = () => {
                 Зарегистрирован {formatDate(user.createdAt)}
               </p>
             )}
+          </div>
+        </div>
+      </div>
+
+      {/* Statistics block */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart2 className="w-5 h-5 text-green-600" />
+          <h2 className="text-lg font-semibold text-gray-900">Статистика</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-green-50 rounded-xl p-4 text-center">
+            <p className="text-3xl font-bold text-green-600">{stats?.treeCount ?? '—'}</p>
+            <p className="text-sm text-gray-600 mt-1">деревьев</p>
+          </div>
+          <div className="bg-blue-50 rounded-xl p-4 text-center">
+            <p className="text-3xl font-bold text-blue-600">{stats?.personCount ?? '—'}</p>
+            <p className="text-sm text-gray-600 mt-1">персон</p>
           </div>
         </div>
       </div>

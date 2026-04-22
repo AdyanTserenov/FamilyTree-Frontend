@@ -80,20 +80,18 @@ export const NotificationsPage = () => {
             <p className="text-gray-600 mt-1">{unreadCount} непрочитанных</p>
           )}
         </div>
-        {unreadCount > 0 && (
-          <button
-            onClick={() => markAllReadMutation.mutate()}
-            disabled={markAllReadMutation.isPending}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm transition-colors disabled:opacity-50"
-          >
-            {markAllReadMutation.isPending ? (
-              <Spinner size="sm" />
-            ) : (
-              <CheckCheck className="w-4 h-4" />
-            )}
-            Отметить все как прочитанные
-          </button>
-        )}
+        <button
+          onClick={() => markAllReadMutation.mutate()}
+          disabled={markAllReadMutation.isPending || unreadCount === 0}
+          className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm transition-colors disabled:opacity-50"
+        >
+          {markAllReadMutation.isPending ? (
+            <Spinner size="sm" />
+          ) : (
+            <CheckCheck className="w-4 h-4" />
+          )}
+          Отметить все как прочитанные
+        </button>
       </div>
 
       {/* Filter tabs */}

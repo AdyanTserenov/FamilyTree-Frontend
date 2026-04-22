@@ -908,7 +908,7 @@ export const TreePage = () => {
                 className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
-                <span className="hidden sm:inline">Добавить</span>
+                <span className="hidden sm:inline">Добавить персону</span>
               </button>
             </>
           )}

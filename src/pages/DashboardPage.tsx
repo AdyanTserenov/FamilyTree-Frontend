@@ -35,6 +35,7 @@ export const DashboardPage = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [selectedTree, setSelectedTree] = useState<Tree | null>(null);
   const [newTreeName, setNewTreeName] = useState('');
+  const [newTreeDescription, setNewTreeDescription] = useState('');
   const [editTreeName, setEditTreeName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'EDITOR' | 'VIEWER'>('VIEWER');
@@ -82,11 +83,13 @@ export const DashboardPage = () => {
 
   // ── Mutations ────────────────────────────────────────────────────────────────
   const createMutation = useMutation({
-    mutationFn: (name: string) => treeService.createTree(name),
+    mutationFn: ({ name, description }: { name: string; description?: string }) =>
+      treeService.createTree(name, description),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trees'] });
       setCreateModalOpen(false);
       setNewTreeName('');
+      setNewTreeDescription('');
       toast.success('Дерево создано!');
     },
     onError: () => toast.error('Ошибка создания дерева'),
@@ -156,7 +159,7 @@ export const DashboardPage = () => {
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleCreateTree = () => {
     if (!newTreeName.trim()) return;
-    createMutation.mutate(newTreeName.trim());
+    createMutation.mutate({ name: newTreeName.trim(), description: newTreeDescription.trim() || undefined });
   };
 
   const handleEditTree = () => {
@@ -444,6 +447,17 @@ export const DashboardPage = () => {
               placeholder="Например: Семья Ивановых"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+            <textarea
+              value={newTreeDescription}
+              onChange={(e) => setNewTreeDescription(e.target.value)}
+              placeholder="Описание семейного дерева (необязательно)"
+              rows={3}
+              name="description"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
             />
           </div>
           <div className="flex gap-3 justify-end">

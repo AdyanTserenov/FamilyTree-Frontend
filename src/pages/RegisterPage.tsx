@@ -15,6 +15,9 @@ const schema = z.object({
   email: z.string().email('Некорректный формат email'),
   password: z.string().min(8, 'Пароль должен содержать минимум 8 символов'),
   confirmPassword: z.string(),
+  privacyPolicy: z.boolean().refine((val) => val === true, {
+    message: 'Необходимо принять политику конфиденциальности',
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Пароли не совпадают',
   path: ['confirmPassword'],
@@ -36,8 +39,9 @@ export const RegisterPage = () => {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const { confirmPassword: _confirm, ...signUpData } = data;
+      const { confirmPassword: _confirm, privacyPolicy: _privacy, ...signUpData } = data;
       void _confirm;
+      void _privacy;
       const response = await authService.signUp(signUpData);
       if (response.status === 'success') {
         toast.success('Регистрация успешна! Проверьте email для подтверждения.');
@@ -159,6 +163,24 @@ export const RegisterPage = () => {
                 <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
               )}
             </div>
+
+            <div className="flex items-start gap-2">
+              <input
+                {...register('privacyPolicy')}
+                type="checkbox"
+                id="privacyPolicy"
+                className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <label htmlFor="privacyPolicy" className="text-sm text-gray-600">
+                Я согласен с{' '}
+                <span className="text-green-600 hover:text-green-700 cursor-pointer underline">
+                  политикой конфиденциальности
+                </span>
+              </label>
+            </div>
+            {errors.privacyPolicy && (
+              <p className="text-red-500 text-xs mt-1">{errors.privacyPolicy.message}</p>
+            )}
 
             <button
               type="submit"
