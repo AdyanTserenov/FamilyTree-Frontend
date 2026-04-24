@@ -212,6 +212,8 @@ export const TreePage = () => {
   const [selectedPerson1, setSelectedPerson1] = useState<number | ''>('');
   const [selectedPerson2, setSelectedPerson2] = useState<number | ''>('');
   const [relType, setRelType] = useState<RelationshipType>('PARENT_CHILD');
+  const [partnershipStartDate, setPartnershipStartDate] = useState('');
+  const [partnershipEndDate, setPartnershipEndDate] = useState('');
 
   // Person form state
   const [personForm, setPersonForm] = useState({
@@ -726,12 +728,16 @@ export const TreePage = () => {
         person1Id: Number(selectedPerson1),
         person2Id: Number(selectedPerson2),
         type: relType,
+        ...(relType === 'PARTNERSHIP' && partnershipStartDate ? { startDate: partnershipStartDate } : {}),
+        ...(relType === 'PARTNERSHIP' && partnershipEndDate ? { endDate: partnershipEndDate } : {}),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['graph', treeIdNum] });
       setAddRelModalOpen(false);
       setSelectedPerson1('');
       setSelectedPerson2('');
+      setPartnershipStartDate('');
+      setPartnershipEndDate('');
       toast.success('Связь добавлена!');
     },
     onError: () => toast.error('Ошибка добавления связи'),
@@ -1180,7 +1186,35 @@ export const TreePage = () => {
               <option value="PARENT_CHILD">Родитель → Ребёнок</option>
               <option value="PARTNERSHIP">Партнёрство</option>
             </select>
+            {relType === 'PARENT_CHILD' && (
+              <p className="text-xs text-amber-600 mt-1">
+                💡 Убедитесь, что дата рождения родителя раньше даты рождения ребёнка
+              </p>
+            )}
           </div>
+
+          {relType === 'PARTNERSHIP' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+                <input
+                  type="date"
+                  value={partnershipStartDate}
+                  onChange={(e) => setPartnershipStartDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+                <input
+                  type="date"
+                  value={partnershipEndDate}
+                  onChange={(e) => setPartnershipEndDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Персона 2</label>

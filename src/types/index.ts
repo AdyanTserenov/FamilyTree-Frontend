@@ -130,12 +130,16 @@ export interface Relationship {
   type: RelationshipType;
   person1?: PersonSummary;
   person2?: PersonSummary;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface RelationshipRequest {
   person1Id: number;
   person2Id: number;
   type: RelationshipType;
+  startDate?: string;
+  endDate?: string;
 }
 
 // Comment types
