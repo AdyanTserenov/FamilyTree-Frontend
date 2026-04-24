@@ -156,6 +156,7 @@ export interface Comment {
   replies?: Comment[];
   createdAt: string;
   updatedAt: string;
+  deleted?: boolean;
 }
 
 export interface CommentRequest {

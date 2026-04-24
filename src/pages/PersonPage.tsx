@@ -19,6 +19,7 @@ import {
   Pencil,
   Plus,
   ChevronDown,
+  CornerDownRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { personService, commentService, mediaService, aiService, treeService } from '../api/trees';
@@ -157,7 +158,9 @@ export const PersonPage = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
+  // replyTo: id of the root comment being replied to (inline form shown under that comment)
   const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
   const [editingComment, setEditingComment] = useState<{ id: number; content: string } | null>(null);
 
   // Comments pagination state
@@ -296,14 +299,26 @@ export const PersonPage = () => {
     mutationFn: () =>
       commentService.addComment(treeIdNum, personIdNum, {
         content: commentText,
-        parentCommentId: replyTo ?? undefined,
       }),
     onSuccess: () => {
       refreshComments();
       setCommentText('');
-      setReplyTo(null);
     },
     onError: () => toast.error('Ошибка добавления комментария'),
+  });
+
+  const addReplyMutation = useMutation({
+    mutationFn: (parentCommentId: number) =>
+      commentService.addComment(treeIdNum, personIdNum, {
+        content: replyText,
+        parentCommentId,
+      }),
+    onSuccess: () => {
+      refreshComments();
+      setReplyText('');
+      setReplyTo(null);
+    },
+    onError: () => toast.error('Ошибка добавления ответа'),
   });
 
   const updateCommentMutation = useMutation({
@@ -635,38 +650,26 @@ export const PersonPage = () => {
           {/* Comments Tab */}
           {activeTab === 'comments' && (
             <div className="space-y-4">
-              {/* Add comment */}
+              {/* Add root comment */}
               <div className="flex gap-3">
                 <textarea
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={
-                    replyTo ? 'Ответить на комментарий...' : 'Написать комментарий...'
-                  }
+                  placeholder="Написать комментарий..."
                   rows={2}
                   className={inputClass + ' resize-none flex-1'}
                 />
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => addCommentMutation.mutate()}
-                    disabled={!commentText.trim() || addCommentMutation.isPending}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {addCommentMutation.isPending ? (
-                      <Spinner size="sm" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </button>
-                  {replyTo && (
-                    <button
-                      onClick={() => setReplyTo(null)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 text-sm"
-                    >
-                      Отмена
-                    </button>
+                <button
+                  onClick={() => addCommentMutation.mutate()}
+                  disabled={!commentText.trim() || addCommentMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed self-start"
+                >
+                  {addCommentMutation.isPending ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Send className="w-4 h-4" />
                   )}
-                </div>
+                </button>
               </div>
 
               {/* Comments list */}
@@ -685,8 +688,9 @@ export const PersonPage = () => {
                   )}
                   {allComments.map((comment: Comment) => (
                     <div key={comment.id} className="bg-gray-50 rounded-xl p-4">
+                      {/* Root comment header */}
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium text-gray-900 text-sm">
                               {comment.authorName}
@@ -714,13 +718,13 @@ export const PersonPage = () => {
                                     content: editingComment.content,
                                   })
                                 }
-                                className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700"
+                                className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 whitespace-nowrap"
                               >
                                 Сохранить
                               </button>
                               <button
                                 onClick={() => setEditingComment(null)}
-                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 whitespace-nowrap"
                               >
                                 Отмена
                               </button>
@@ -729,15 +733,29 @@ export const PersonPage = () => {
                             <p className="text-gray-700 text-sm">{comment.content}</p>
                           )}
                         </div>
-                        <div className="flex items-center gap-1">
+                        {/* Root comment actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Reply button — only on root comments */}
                           <button
-                            onClick={() => setReplyTo(comment.id)}
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            onClick={() => {
+                              if (replyTo === comment.id) {
+                                setReplyTo(null);
+                                setReplyText('');
+                              } else {
+                                setReplyTo(comment.id);
+                                setReplyText('');
+                              }
+                            }}
+                            className={`p-1.5 rounded-lg transition-colors ${
+                              replyTo === comment.id
+                                ? 'text-green-600 bg-green-50'
+                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                            }`}
                             title="Ответить"
                           >
-                            <MessageSquare className="w-3.5 h-3.5" />
+                            <CornerDownRight className="w-3.5 h-3.5" />
                           </button>
-                          {comment.authorId === currentUserId && (
+                          {comment.authorId === currentUserId && !comment.deleted && (
                             <>
                               <button
                                 onClick={() =>
@@ -763,22 +781,120 @@ export const PersonPage = () => {
                         </div>
                       </div>
 
-                      {/* Replies */}
+                      {/* Replies list */}
                       {comment.replies && comment.replies.length > 0 && (
-                        <div className="mt-3 ml-4 space-y-2 border-l-2 border-gray-200 pl-4">
+                        <div className="mt-3 ml-4 space-y-2 border-l-2 border-green-100 pl-4">
                           {comment.replies.map((reply: Comment) => (
                             <div key={reply.id} className="bg-white rounded-lg p-3">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-gray-900 text-xs">
-                                  {reply.authorName}
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                  {formatDateTime(reply.createdAt)}
-                                </span>
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-medium text-gray-900 text-xs">
+                                      {reply.authorName}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {formatDateTime(reply.createdAt)}
+                                    </span>
+                                  </div>
+                                  {editingComment?.id === reply.id ? (
+                                    <div className="flex gap-2 mt-1">
+                                      <input
+                                        value={editingComment.content}
+                                        onChange={(e) =>
+                                          setEditingComment({
+                                            ...editingComment,
+                                            content: e.target.value,
+                                          })
+                                        }
+                                        className={inputClass + ' text-sm'}
+                                      />
+                                      <button
+                                        onClick={() =>
+                                          updateCommentMutation.mutate({
+                                            id: editingComment.id,
+                                            content: editingComment.content,
+                                          })
+                                        }
+                                        className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs hover:bg-green-700 whitespace-nowrap"
+                                      >
+                                        Сохранить
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingComment(null)}
+                                        className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs hover:bg-gray-50 whitespace-nowrap"
+                                      >
+                                        Отмена
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-700 text-sm">{reply.content}</p>
+                                  )}
+                                </div>
+                                {/* Reply actions — edit/delete only for own replies */}
+                                {reply.authorId === currentUserId && !reply.deleted && (
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    <button
+                                      onClick={() =>
+                                        setEditingComment({
+                                          id: reply.id,
+                                          content: reply.content,
+                                        })
+                                      }
+                                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                      title="Редактировать"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => deleteCommentMutation.mutate(reply.id)}
+                                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                      title="Удалить"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
-                              <p className="text-gray-700 text-sm">{reply.content}</p>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Inline reply form — shown under the comment being replied to */}
+                      {replyTo === comment.id && (
+                        <div className="mt-3 ml-4 pl-4 border-l-2 border-green-200">
+                          <div className="flex gap-2">
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={`Ответить ${comment.authorName}...`}
+                              rows={2}
+                              autoFocus
+                              className={inputClass + ' resize-none flex-1 text-sm'}
+                            />
+                            <div className="flex flex-col gap-1.5">
+                              <button
+                                onClick={() => addReplyMutation.mutate(comment.id)}
+                                disabled={!replyText.trim() || addReplyMutation.isPending}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                              >
+                                {addReplyMutation.isPending ? (
+                                  <Spinner size="sm" />
+                                ) : (
+                                  <Send className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReplyTo(null);
+                                  setReplyText('');
+                                }}
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 text-xs"
+                              >
+                                Отмена
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
