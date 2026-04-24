@@ -16,6 +16,8 @@ import type {
   AiRequest,
   AiResponse,
   PersonHistoryEntry,
+  PagedCommentsResponse,
+  PagedNotificationsResponse,
 } from '../types';
 
 // Trees
@@ -153,6 +155,19 @@ export const commentService = {
     return response.data;
   },
 
+  getCommentsPaged: async (
+    treeId: number,
+    personId: number,
+    page: number,
+    size = 10
+  ): Promise<ApiResponse<PagedCommentsResponse>> => {
+    const response = await treeApi.get<ApiResponse<PagedCommentsResponse>>(
+      `/trees/${treeId}/persons/${personId}/comments`,
+      { params: { page, size } }
+    );
+    return response.data;
+  },
+
   addComment: async (treeId: number, personId: number, data: CommentRequest): Promise<ApiResponse<Comment>> => {
     const response = await treeApi.post<ApiResponse<Comment>>(`/trees/${treeId}/persons/${personId}/comments`, data);
     return response.data;
@@ -206,6 +221,17 @@ export const mediaService = {
 export const notificationService = {
   getNotifications: async (): Promise<ApiResponse<Notification[]>> => {
     const response = await treeApi.get<ApiResponse<Notification[]>>('/notifications');
+    return response.data;
+  },
+
+  getNotificationsPaged: async (
+    page: number,
+    size = 15
+  ): Promise<ApiResponse<PagedNotificationsResponse>> => {
+    const response = await treeApi.get<ApiResponse<PagedNotificationsResponse>>(
+      '/notifications',
+      { params: { page, size } }
+    );
     return response.data;
   },
 

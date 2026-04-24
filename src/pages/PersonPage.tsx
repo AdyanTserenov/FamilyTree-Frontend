@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
@@ -18,6 +18,7 @@ import {
   Clock,
   Pencil,
   Plus,
+  ChevronDown,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { personService, commentService, mediaService, aiService, treeService } from '../api/trees';
@@ -158,6 +159,14 @@ export const PersonPage = () => {
   const [commentText, setCommentText] = useState('');
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [editingComment, setEditingComment] = useState<{ id: number; content: string } | null>(null);
+
+  // Comments pagination state
+  const [commentPage, setCommentPage] = useState(0);
+  const [allComments, setAllComments] = useState<Comment[]>([]);
+  const [commentsHasMore, setCommentsHasMore] = useState(false);
+  const [commentsTotalCount, setCommentsTotalCount] = useState(0);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsInitialized, setCommentsInitialized] = useState(false);
   const [aiText, setAiText] = useState('');
   const [aiResult, setAiResult] = useState<{
     dates: string[];
@@ -195,13 +204,42 @@ export const PersonPage = () => {
   const person = personData?.data;
   usePageTitle(person?.fullName ?? person?.firstName);
 
-  // Fetch comments
-  const { data: commentsData } = useQuery({
-    queryKey: ['comments', treeIdNum, personIdNum],
-    queryFn: () => commentService.getComments(treeIdNum, personIdNum),
-    enabled: activeTab === 'comments' && !!treeIdNum && !!personIdNum,
-  });
-  const comments = commentsData?.data ?? [];
+  // Fetch comments with pagination
+  const loadComments = useCallback(async (page: number, reset = false) => {
+    if (!treeIdNum || !personIdNum) return;
+    setCommentsLoading(true);
+    try {
+      const res = await commentService.getCommentsPaged(treeIdNum, personIdNum, page, 10);
+      const paged = res.data;
+      setAllComments(prev => reset ? paged.data : [...prev, ...paged.data]);
+      setCommentsHasMore(paged.hasMore);
+      setCommentsTotalCount(paged.totalCount);
+      setCommentsInitialized(true);
+    } catch {
+      toast.error('Ошибка загрузки комментариев');
+    } finally {
+      setCommentsLoading(false);
+    }
+  }, [treeIdNum, personIdNum]);
+
+  // Load first page when switching to comments tab
+  useEffect(() => {
+    if (activeTab === 'comments' && !commentsInitialized && treeIdNum && personIdNum) {
+      loadComments(0, true);
+    }
+  }, [activeTab, commentsInitialized, loadComments, treeIdNum, personIdNum]);
+
+  const handleLoadMoreComments = () => {
+    const nextPage = commentPage + 1;
+    setCommentPage(nextPage);
+    loadComments(nextPage);
+  };
+
+  const refreshComments = () => {
+    setCommentPage(0);
+    setCommentsInitialized(false);
+    setAllComments([]);
+  };
 
   // Fetch media
   const { data: mediaData } = useQuery({
@@ -261,7 +299,7 @@ export const PersonPage = () => {
         parentCommentId: replyTo ?? undefined,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', treeIdNum, personIdNum] });
+      refreshComments();
       setCommentText('');
       setReplyTo(null);
     },
@@ -272,7 +310,7 @@ export const PersonPage = () => {
     mutationFn: ({ id, content }: { id: number; content: string }) =>
       commentService.updateComment(treeIdNum, personIdNum, id, content),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', treeIdNum, personIdNum] });
+      refreshComments();
       setEditingComment(null);
     },
     onError: () => toast.error('Ошибка обновления комментария'),
@@ -281,7 +319,7 @@ export const PersonPage = () => {
   const deleteCommentMutation = useMutation({
     mutationFn: (id: number) => commentService.deleteComment(treeIdNum, personIdNum, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', treeIdNum, personIdNum] });
+      refreshComments();
     },
     onError: () => toast.error('Ошибка удаления комментария'),
   });
@@ -632,11 +670,20 @@ export const PersonPage = () => {
               </div>
 
               {/* Comments list */}
-              {comments.length === 0 ? (
+              {commentsLoading && allComments.length === 0 ? (
+                <div className="flex justify-center py-8">
+                  <Spinner />
+                </div>
+              ) : allComments.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Нет комментариев</p>
               ) : (
                 <div className="space-y-3">
-                  {comments.map((comment: Comment) => (
+                  {commentsTotalCount > 0 && (
+                    <p className="text-xs text-gray-400 text-right">
+                      Показано {allComments.length} из {commentsTotalCount}
+                    </p>
+                  )}
+                  {allComments.map((comment: Comment) => (
                     <div key={comment.id} className="bg-gray-50 rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
@@ -736,6 +783,24 @@ export const PersonPage = () => {
                       )}
                     </div>
                   ))}
+
+                  {/* Show more button */}
+                  {commentsHasMore && (
+                    <button
+                      onClick={handleLoadMoreComments}
+                      disabled={commentsLoading}
+                      className="w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {commentsLoading ? (
+                        <Spinner size="sm" />
+                      ) : (
+                        <>
+                          <ChevronDown className="w-4 h-4" />
+                          Показать ещё
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

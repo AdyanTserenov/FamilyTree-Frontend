@@ -235,3 +235,16 @@ export interface PersonHistoryEntry {
   userName: string;
   createdAt: string;
 }
+
+// Pagination response types
+export interface PagedCommentsResponse {
+  data: Comment[];
+  totalCount: number;
+  hasMore: boolean;
+}
+
+export interface PagedNotificationsResponse {
+  data: Notification[];
+  totalCount: number;
+  hasMore: boolean;
+}

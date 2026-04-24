@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, Check, CheckCheck, Trash2 } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { notificationService } from '../api/trees';
 import { useNotificationStore } from '../store/notificationStore';
@@ -26,20 +26,77 @@ const notificationTypeVariant: Record<NotificationType, 'info' | 'success' | 'de
   INVITATION_SENT: 'info',
 };
 
+const PAGE_SIZE = 15;
+
 export const NotificationsPage = () => {
   usePageTitle('Уведомления');
   const queryClient = useQueryClient();
-  const { notifications, markAsRead, unmarkAsRead, markAllAsRead, removeNotification, unreadCount } =
+  const { markAsRead, unmarkAsRead, markAllAsRead, removeNotification, unreadCount } =
     useNotificationStore();
 
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
+  // Paginated notifications state (independent from store)
+  const [pagedNotifications, setPagedNotifications] = useState<Notification[]>([]);
+  const [notifPage, setNotifPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  const loadNotifications = useCallback(async (page: number, reset = false) => {
+    setLoading(true);
+    try {
+      const res = await notificationService.getNotificationsPaged(page, PAGE_SIZE);
+      const paged = res.data;
+      setPagedNotifications(prev => reset ? paged.data : [...prev, ...paged.data]);
+      setHasMore(paged.hasMore);
+      setTotalCount(paged.totalCount);
+      setInitialized(true);
+    } catch {
+      toast.error('Ошибка загрузки уведомлений');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!initialized) {
+      loadNotifications(0, true);
+    }
+  }, [initialized, loadNotifications]);
+
+  const handleLoadMore = () => {
+    const nextPage = notifPage + 1;
+    setNotifPage(nextPage);
+    loadNotifications(nextPage);
+  };
+
+  const refreshNotifications = () => {
+    setNotifPage(0);
+    setInitialized(false);
+    setPagedNotifications([]);
+  };
+
+  // Derive unread count from paged list
+  const localUnreadCount = pagedNotifications.filter(n => !n.read).length;
+
   const filteredNotifications =
-    filter === 'unread' ? notifications.filter((n) => !n.read) : notifications;
+    filter === 'unread' ? pagedNotifications.filter((n) => !n.read) : pagedNotifications;
 
   const markReadMutation = useMutation({
     mutationFn: (id: number) => notificationService.markAsRead(id),
+    onMutate: (id) => {
+      // Optimistic update in paged list
+      setPagedNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      );
+      markAsRead(id);
+    },
     onError: (_err, id) => {
+      setPagedNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, read: false } : n)
+      );
       unmarkAsRead(id);
       toast.error('Не удалось отметить уведомление как прочитанное');
     },
@@ -48,6 +105,7 @@ export const NotificationsPage = () => {
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationService.markAllAsRead(),
     onSuccess: () => {
+      setPagedNotifications(prev => prev.map(n => ({ ...n, read: true })));
       markAllAsRead();
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Все уведомления прочитаны');
@@ -58,6 +116,8 @@ export const NotificationsPage = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => notificationService.deleteNotification(id),
     onSuccess: (_, id) => {
+      setPagedNotifications(prev => prev.filter(n => n.id !== id));
+      setTotalCount(prev => Math.max(0, prev - 1));
       removeNotification(id);
     },
     onError: () => toast.error('Ошибка удаления'),
@@ -65,7 +125,6 @@ export const NotificationsPage = () => {
 
   const handleMarkRead = (notification: Notification) => {
     if (!notification.read) {
-      markAsRead(notification.id);
       markReadMutation.mutate(notification.id);
     }
   };
@@ -76,13 +135,13 @@ export const NotificationsPage = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Уведомления</h1>
-          {unreadCount > 0 && (
-            <p className="text-gray-600 mt-1">{unreadCount} непрочитанных</p>
+          {(unreadCount > 0 || localUnreadCount > 0) && (
+            <p className="text-gray-600 mt-1">{Math.max(unreadCount, localUnreadCount)} непрочитанных</p>
           )}
         </div>
         <button
           onClick={() => markAllReadMutation.mutate()}
-          disabled={markAllReadMutation.isPending || unreadCount === 0}
+          disabled={markAllReadMutation.isPending || (unreadCount === 0 && localUnreadCount === 0)}
           className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 text-sm transition-colors disabled:opacity-50"
         >
           {markAllReadMutation.isPending ? (
@@ -104,6 +163,9 @@ export const NotificationsPage = () => {
               : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
           Все
+          {totalCount > 0 && (
+            <span className="ml-1.5 text-xs text-gray-400">({totalCount})</span>
+          )}
         </button>
         <button
           onClick={() => setFilter('unread')}
@@ -113,16 +175,20 @@ export const NotificationsPage = () => {
               : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
           Непрочитанные
-          {unreadCount > 0 && (
+          {localUnreadCount > 0 && (
             <span className="ml-1.5 bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full">
-              {unreadCount}
+              {localUnreadCount}
             </span>
           )}
         </button>
       </div>
 
       {/* Notifications list */}
-      {notifications.length === 0 ? (
+      {loading && pagedNotifications.length === 0 ? (
+        <div className="flex justify-center py-20">
+          <Spinner size="lg" />
+        </div>
+      ) : pagedNotifications.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Bell className="w-10 h-10 text-gray-400" />
@@ -193,6 +259,24 @@ export const NotificationsPage = () => {
               </div>
             </div>
           ))}
+
+          {/* Show more button — only visible in "all" filter */}
+          {filter === 'all' && hasMore && (
+            <button
+              onClick={handleLoadMore}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <Spinner size="sm" />
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Показать ещё
+                </>
+              )}
+            </button>
+          )}
         </div>
       )}
     </div>
