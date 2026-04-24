@@ -92,6 +92,7 @@ export interface Person {
   deathDate?: string;
   birthPlace?: string;
   deathPlace?: string;
+  occupation?: string;
   biography?: string;
   gender: Gender;
   avatarUrl?: string;
@@ -110,6 +111,7 @@ export interface PersonRequest {
   deathDate?: string;
   birthPlace?: string;
   deathPlace?: string;
+  occupation?: string;
   biography?: string;
   gender: Gender;
 }

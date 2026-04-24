@@ -41,7 +41,33 @@ const fieldLabels: Record<string, string> = {
   gender: 'Пол',
   biography: 'Биография',
   birthPlace: 'Место рождения',
+  deathPlace: 'Место смерти',
+  occupation: 'Профессия',
 };
+
+/**
+ * Parses a date string from AI response into ISO format "YYYY-MM-DD".
+ * Supports: "1900-01-01", "1900", "01.01.1900", "1 января 1900"
+ */
+function parseAiDate(dateStr: string): string | null {
+  const s = dateStr.trim();
+  // ISO format: "1900-01-01"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Year only: "1900" → "1900-01-01"
+  if (/^\d{4}$/.test(s)) return `${s}-01-01`;
+  // DD.MM.YYYY
+  const dmy = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+  // Russian month names: "1 января 1900"
+  const months: Record<string, string> = {
+    'января': '01', 'февраля': '02', 'марта': '03', 'апреля': '04',
+    'мая': '05', 'июня': '06', 'июля': '07', 'августа': '08',
+    'сентября': '09', 'октября': '10', 'ноября': '11', 'декабря': '12',
+  };
+  const ru = s.match(/^(\d{1,2})\s+(\S+)\s+(\d{4})$/);
+  if (ru && months[ru[2]]) return `${ru[3]}-${months[ru[2]]}-${ru[1].padStart(2, '0')}`;
+  return null;
+}
 
 const actionIcon = (action: string) => {
   if (action === 'CREATE') return <Plus className="w-4 h-4 text-green-500" />;
@@ -197,6 +223,7 @@ export const PersonPage = () => {
         deathDate: data.deathDate,
         birthPlace: data.birthPlace,
         deathPlace: data.deathPlace,
+        occupation: data.occupation,
         biography: data.biography,
       }),
     onSuccess: () => {
@@ -842,6 +869,30 @@ export const PersonPage = () => {
                   (Array.isArray(aiResult.places) && aiResult.places.length > 0) ||
                   (Array.isArray(aiResult.professions) && aiResult.professions.length > 0) ||
                   (Array.isArray(aiResult.events) && aiResult.events.length > 0);
+
+                // Build recommendations from AI result
+                const recBirthDate = aiResult.dates?.[0] ? parseAiDate(aiResult.dates[0]) : null;
+                const recDeathDate = aiResult.dates?.[1] ? parseAiDate(aiResult.dates[1]) : null;
+                const recBirthPlace = aiResult.places?.[0] ?? null;
+                const recOccupation = aiResult.professions?.[0] ?? null;
+
+                const hasRecommendations = canEditTree && (recBirthDate || recBirthPlace || recOccupation);
+
+                const applyField = (patch: Partial<Person>) => {
+                  if (!person) return;
+                  updatePersonMutation.mutate({ ...person, ...patch });
+                };
+
+                const applyAll = () => {
+                  if (!person) return;
+                  const patch: Partial<Person> = { ...person };
+                  if (recBirthDate) patch.birthDate = recBirthDate;
+                  if (recDeathDate) patch.deathDate = recDeathDate;
+                  if (recBirthPlace) patch.birthPlace = recBirthPlace;
+                  if (recOccupation) patch.occupation = recOccupation;
+                  updatePersonMutation.mutate(patch);
+                };
+
                 return (
                   <div className="space-y-4">
                     {!aiResult.success && (
@@ -924,6 +975,92 @@ export const PersonPage = () => {
                         </div>
                       )}
                     </div>
+
+                    {/* Recommendations section */}
+                    {hasRecommendations && (
+                      <div className="border border-green-200 rounded-xl p-4 bg-green-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-green-800 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            Рекомендации по заполнению полей
+                          </h4>
+                          <button
+                            onClick={applyAll}
+                            disabled={updatePersonMutation.isPending}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {updatePersonMutation.isPending ? <Spinner size="sm" /> : null}
+                            Применить все
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {recBirthDate && (
+                            <div className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-green-100">
+                              <div className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                                <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span className="text-gray-500">Дата рождения:</span>
+                                <span className="font-medium truncate">{recBirthDate}</span>
+                              </div>
+                              <button
+                                onClick={() => applyField({ birthDate: recBirthDate })}
+                                disabled={updatePersonMutation.isPending}
+                                className="flex-shrink-0 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                              >
+                                Применить
+                              </button>
+                            </div>
+                          )}
+                          {recDeathDate && (
+                            <div className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-green-100">
+                              <div className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                                <Calendar className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span className="text-gray-500">Дата смерти:</span>
+                                <span className="font-medium truncate">{recDeathDate}</span>
+                              </div>
+                              <button
+                                onClick={() => applyField({ deathDate: recDeathDate })}
+                                disabled={updatePersonMutation.isPending}
+                                className="flex-shrink-0 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                              >
+                                Применить
+                              </button>
+                            </div>
+                          )}
+                          {recBirthPlace && (
+                            <div className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-green-100">
+                              <div className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                                <MapPin className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span className="text-gray-500">Место рождения:</span>
+                                <span className="font-medium truncate">{recBirthPlace}</span>
+                              </div>
+                              <button
+                                onClick={() => applyField({ birthPlace: recBirthPlace })}
+                                disabled={updatePersonMutation.isPending}
+                                className="flex-shrink-0 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                              >
+                                Применить
+                              </button>
+                            </div>
+                          )}
+                          {recOccupation && (
+                            <div className="flex items-center justify-between gap-3 bg-white rounded-lg px-3 py-2 border border-green-100">
+                              <div className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                                <User className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span className="text-gray-500">Профессия:</span>
+                                <span className="font-medium truncate">{recOccupation}</span>
+                              </div>
+                              <button
+                                onClick={() => applyField({ occupation: recOccupation })}
+                                disabled={updatePersonMutation.isPending}
+                                className="flex-shrink-0 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+                              >
+                                Применить
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -1029,6 +1166,16 @@ export const PersonPage = () => {
                 className={inputClass}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Профессия</label>
+            <input
+              value={personForm.occupation ?? ''}
+              onChange={(e) => setPersonForm((f) => ({ ...f, occupation: e.target.value }))}
+              placeholder="Например: инженер, учитель..."
+              className={inputClass}
+            />
           </div>
 
           <div>
