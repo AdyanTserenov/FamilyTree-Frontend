@@ -492,6 +492,20 @@ export const TreePage = () => {
       });
     }
 
+    // Birth place filter
+    if (filters.birthPlace && filters.birthPlace.trim()) {
+      const place = filters.birthPlace.trim().toLowerCase();
+      result = result.filter(p => {
+        if (!p.birthPlace) return false;
+        return p.birthPlace.toLowerCase().includes(place);
+      });
+    }
+
+    // Has media filter
+    if (filters.hasMedia) {
+      result = result.filter(p => (p.mediaCount ?? 0) > 0);
+    }
+
     return result;
   }, [persons, filters, filterPersonId]);
 

@@ -5,9 +5,11 @@ export interface TreeFilters {
   onlyAncestors: boolean;
   bornAfter: string;
   bornBefore: string;
+  birthPlace: string;
   gender: 'all' | 'MALE' | 'FEMALE';
   showPhotos: boolean;
   showBirthPlace: boolean;
+  hasMedia: boolean;
 }
 
 export const defaultFilters: TreeFilters = {
@@ -15,9 +17,11 @@ export const defaultFilters: TreeFilters = {
   onlyAncestors: false,
   bornAfter: '',
   bornBefore: '',
+  birthPlace: '',
   gender: 'all',
   showPhotos: true,
   showBirthPlace: false,
+  hasMedia: false,
 };
 
 interface TreeFiltersPanelProps {
@@ -83,7 +87,7 @@ export const TreeFiltersPanel = ({ filters, onChange }: TreeFiltersPanelProps) =
               </h4>
               <div className="space-y-2">
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Родились после</label>
+                  <label className="text-xs text-gray-500 mb-1 block">Год рождения от</label>
                   <input
                     type="number"
                     placeholder="Год"
@@ -95,7 +99,7 @@ export const TreeFiltersPanel = ({ filters, onChange }: TreeFiltersPanelProps) =
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Родились до</label>
+                  <label className="text-xs text-gray-500 mb-1 block">Год рождения до</label>
                   <input
                     type="number"
                     placeholder="Год"
@@ -104,6 +108,16 @@ export const TreeFiltersPanel = ({ filters, onChange }: TreeFiltersPanelProps) =
                     className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     min="0"
                     max="2100"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Место рождения</label>
+                  <input
+                    type="text"
+                    placeholder="Например: Москва"
+                    value={filters.birthPlace}
+                    onChange={e => update({ birthPlace: e.target.value })}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   />
                 </div>
               </div>
@@ -131,6 +145,22 @@ export const TreeFiltersPanel = ({ filters, onChange }: TreeFiltersPanelProps) =
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* Media filter */}
+            <div className="mb-5">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Медиафайлы
+              </h4>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={filters.hasMedia}
+                  onChange={e => update({ hasMedia: e.target.checked })}
+                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <span className="text-sm text-gray-700">Только с медиафайлами</span>
+              </label>
             </div>
 
             {/* Display settings */}

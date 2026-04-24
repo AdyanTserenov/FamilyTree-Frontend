@@ -99,6 +99,7 @@ export interface Person {
   fullName?: string;
   createdAt?: string;
   updatedAt?: string;
+  mediaCount?: number;
 }
 
 export interface PersonRequest {
