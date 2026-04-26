@@ -72,7 +72,7 @@ export const NotificationsPage = () => {
     loadNotifications(nextPage);
   };
 
-  const refreshNotifications = () => {
+  const _refreshNotifications = () => {
     setNotifPage(0);
     setInitialized(false);
     setPagedNotifications([]);
