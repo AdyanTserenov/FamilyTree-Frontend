@@ -29,7 +29,7 @@ const COUPLE_SIZE = 8;
 /** Gap between sibling nodes along the primary axis (TB → horizontal, LR → vertical). */
 const PRIMARY_GAP = 60;
 /** Gap between generations along the secondary axis. */
-const GENERATION_GAP = 120;
+const GENERATION_GAP = 180;
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -327,20 +327,20 @@ export function getLayoutedElements(
     if (!pos0 || !pos1) continue;
 
     if (isTB) {
-      // Partners are side-by-side → coupleNode at midpoint X, same Y row
-      // Use the already-computed couplePrimaryCenter for consistency
-      const midX = couplePrimaryCenter.get(coupleId) ?? (pos0.x + NODE_WIDTH / 2 + pos1.x + NODE_WIDTH / 2) / 2;
+      // Partners are side-by-side → coupleNode exactly centred between partners' visual centres.
+      // Formula: (partner1.x + partner2.x) / 2 + (NODE_WIDTH - COUPLE_SIZE) / 2
+      const coupleX = (pos0.x + pos1.x) / 2 + (NODE_WIDTH - COUPLE_SIZE) / 2;
       posMap.set(coupleId, {
-        x: midX - COUPLE_SIZE / 2,
+        x: coupleX,
         y: pos0.y + NODE_HEIGHT / 2 - COUPLE_SIZE / 2,
       });
     } else {
-      // Partners are stacked → coupleNode to the right, midpoint Y
-      // Use the already-computed couplePrimaryCenter for consistency
-      const midY = couplePrimaryCenter.get(coupleId) ?? (pos0.y + NODE_HEIGHT / 2 + pos1.y + NODE_HEIGHT / 2) / 2;
+      // Partners are stacked → coupleNode to the right, exactly centred between partners' visual centres.
+      // Formula: (partner1.y + partner2.y) / 2 + (NODE_HEIGHT - COUPLE_SIZE) / 2
+      const coupleY = (pos0.y + pos1.y) / 2 + (NODE_HEIGHT - COUPLE_SIZE) / 2;
       posMap.set(coupleId, {
         x: pos0.x + NODE_WIDTH + 40,
-        y: midY - COUPLE_SIZE / 2,
+        y: coupleY,
       });
     }
   }
