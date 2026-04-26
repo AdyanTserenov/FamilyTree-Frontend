@@ -72,11 +72,6 @@ export const NotificationsPage = () => {
     loadNotifications(nextPage);
   };
 
-  const _refreshNotifications = () => {
-    setNotifPage(0);
-    setInitialized(false);
-    setPagedNotifications([]);
-  };
 
   // Derive unread count from paged list
   const localUnreadCount = pagedNotifications.filter(n => !n.read).length;
