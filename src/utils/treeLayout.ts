@@ -12,6 +12,9 @@
  *  4. Centres children under (or beside) their parent coupleNode / single
  *     parent, shifting subtrees to avoid overlaps.
  *  5. Rewires edge sourceHandle / targetHandle to match the chosen mode.
+ *
+ * Strict order of operations (per couple):
+ *   partner positions → CoupleNode primary position → children positions
  */
 
 import type { Node, Edge } from '@xyflow/react';
@@ -234,7 +237,8 @@ export function getLayoutedElements(
   // LR: primary axis = Y, secondary axis = X
   const primaryPos = new Map<string, number>(); // personId → primary coordinate (top-left)
 
-  const nodeStep = (isTB ? NODE_WIDTH : NODE_HEIGHT) + PRIMARY_GAP;
+  const nodeSize = isTB ? NODE_WIDTH : NODE_HEIGHT;
+  const nodeStep = nodeSize + PRIMARY_GAP;
 
   for (const [, ids] of orderedByGen) {
     ids.forEach((id, idx) => {
@@ -242,42 +246,61 @@ export function getLayoutedElements(
     });
   }
 
-  // ── Step 7: Centre children under their parent ────────────────────────────
-  // Two-pass: first assign naive positions (step 6), then adjust children to
-  // be centred under their parent coupleNode / single parent.
-  // We process generations from top (0) downward so parents are positioned
-  // before children.
+  // ── Step 7: Compute CoupleNode primary positions, then centre children ─────
+  //
+  // Strict order of operations per couple:
+  //   1. Partners already have their primaryPos from Step 6.
+  //   2. Compute the CoupleNode's primary-axis centre = midpoint of partners' centres.
+  //   3. Place children evenly centred under that CoupleNode centre.
+  //
+  // We process generations top-down (0 → maxGen) so that parent couples are
+  // fully positioned before their children's generation is processed.
+
+  // couplePrimaryCenter: coupleId → primary-axis centre coordinate of the coupleNode
+  const couplePrimaryCenter = new Map<string, number>();
+
   const maxGen = Math.max(...[...generation.values()], 0);
 
   for (let gen = 0; gen <= maxGen; gen++) {
     const ids = orderedByGen.get(gen) ?? [];
 
-    // For each couple at this generation, centre their children
+    // ── 7a: Compute CoupleNode primary centres for all couples at this generation
     for (const [coupleId, partners] of couplePartners) {
       const atThisGen = partners.filter(p => generation.get(p) === gen);
       if (atThisGen.length < 2) continue;
 
+      // CoupleNode centre = midpoint of the two partners' node centres
+      const p0Centre = (primaryPos.get(atThisGen[0]) ?? 0) + nodeSize / 2;
+      const p1Centre = (primaryPos.get(atThisGen[1]) ?? 0) + nodeSize / 2;
+      const coupleCenter = (p0Centre + p1Centre) / 2;
+      couplePrimaryCenter.set(coupleId, coupleCenter);
+
+      // ── 7b: Place children evenly centred under this CoupleNode
       const children = parentChildren.get(coupleId) ?? [];
       if (children.length === 0) continue;
 
-      // Parent centre (primary axis) = midpoint of the two partners' centres
-      // In TB mode the primary axis is X so we use NODE_WIDTH/2; in LR mode
-      // the primary axis is Y so we must use NODE_HEIGHT/2.
-      const halfNodeSize = (isTB ? NODE_WIDTH : NODE_HEIGHT) / 2;
-      const p0Primary = (primaryPos.get(atThisGen[0]) ?? 0) + halfNodeSize;
-      const p1Primary = (primaryPos.get(atThisGen[1]) ?? 0) + halfNodeSize;
-      const parentCentre = (p0Primary + p1Primary) / 2;
+      const childCount = children.length;
+      const totalChildrenWidth = childCount * nodeSize + (childCount - 1) * PRIMARY_GAP;
+      const firstChildPrimary = coupleCenter - totalChildrenWidth / 2;
 
-      centreChildrenUnderParent(children, parentCentre, primaryPos, orderedByGen, generation, isTB);
+      for (let i = 0; i < childCount; i++) {
+        primaryPos.set(children[i], firstChildPrimary + i * nodeStep);
+      }
     }
 
-    // For single parents (personNode → personNode direct edges)
+    // ── 7c: Handle single parents (personNode → personNode direct edges)
     for (const personId of ids) {
       const directChildren = (parentChildren.get(personId) ?? []).filter(c => personNodeIds.has(c));
       if (directChildren.length === 0) continue;
 
-      const parentCentre = (primaryPos.get(personId) ?? 0) + (isTB ? NODE_WIDTH : NODE_HEIGHT) / 2;
-      centreChildrenUnderParent(directChildren, parentCentre, primaryPos, orderedByGen, generation, isTB);
+      const parentCentre = (primaryPos.get(personId) ?? 0) + nodeSize / 2;
+      const childCount = directChildren.length;
+      const totalChildrenWidth = childCount * nodeSize + (childCount - 1) * PRIMARY_GAP;
+      const firstChildPrimary = parentCentre - totalChildrenWidth / 2;
+
+      for (let i = 0; i < childCount; i++) {
+        primaryPos.set(directChildren[i], firstChildPrimary + i * nodeStep);
+      }
     }
   }
 
@@ -305,18 +328,16 @@ export function getLayoutedElements(
 
     if (isTB) {
       // Partners are side-by-side → coupleNode at midpoint X, same Y row
-      const centre0X = pos0.x + NODE_WIDTH / 2;
-      const centre1X = pos1.x + NODE_WIDTH / 2;
-      const midX = (centre0X + centre1X) / 2;
+      // Use the already-computed couplePrimaryCenter for consistency
+      const midX = couplePrimaryCenter.get(coupleId) ?? (pos0.x + NODE_WIDTH / 2 + pos1.x + NODE_WIDTH / 2) / 2;
       posMap.set(coupleId, {
         x: midX - COUPLE_SIZE / 2,
         y: pos0.y + NODE_HEIGHT / 2 - COUPLE_SIZE / 2,
       });
     } else {
       // Partners are stacked → coupleNode to the right, midpoint Y
-      const centre0Y = pos0.y + NODE_HEIGHT / 2;
-      const centre1Y = pos1.y + NODE_HEIGHT / 2;
-      const midY = (centre0Y + centre1Y) / 2;
+      // Use the already-computed couplePrimaryCenter for consistency
+      const midY = couplePrimaryCenter.get(coupleId) ?? (pos0.y + NODE_HEIGHT / 2 + pos1.y + NODE_HEIGHT / 2) / 2;
       posMap.set(coupleId, {
         x: pos0.x + NODE_WIDTH + 40,
         y: midY - COUPLE_SIZE / 2,
@@ -410,59 +431,4 @@ export function getLayoutedElements(
   });
 
   return { nodes: layoutedNodes, edges: layoutedEdges };
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Centre a list of children (by their primary-axis positions) under a given
- * parent centre coordinate.  Shifts the entire child group so that its
- * midpoint aligns with `parentCentre`, then resolves overlaps with already-
- * placed nodes in the same generation by nudging the group sideways.
- */
-function centreChildrenUnderParent(
-  children: string[],
-  parentCentre: number,
-  primaryPos: Map<string, number>,
-  orderedByGen: Map<number, string[]>,
-  generation: Map<string, number>,
-  isTB: boolean,
-): void {
-  if (children.length === 0) return;
-
-  const nodeSize = isTB ? NODE_WIDTH : NODE_HEIGHT;
-  const step = nodeSize + PRIMARY_GAP;
-
-  // Current positions of children
-  const childPositions = children.map(id => primaryPos.get(id) ?? 0);
-  const minPos = Math.min(...childPositions);
-  const maxPos = Math.max(...childPositions) + nodeSize;
-  const currentCentre = (minPos + maxPos) / 2;
-  const delta = parentCentre - currentCentre;
-
-  if (Math.abs(delta) < 1) return; // already centred
-
-  // Shift all children by delta
-  for (const id of children) {
-    const cur = primaryPos.get(id) ?? 0;
-    primaryPos.set(id, cur + delta);
-  }
-
-  // Resolve overlaps within each child's generation
-  const childGen = generation.get(children[0]);
-  if (childGen === undefined) return;
-
-  const genIds = orderedByGen.get(childGen) ?? [];
-  // Re-sort genIds by their current primary position
-  genIds.sort((a, b) => (primaryPos.get(a) ?? 0) - (primaryPos.get(b) ?? 0));
-
-  // Forward pass: ensure no node overlaps the previous one
-  for (let i = 1; i < genIds.length; i++) {
-    const prev = primaryPos.get(genIds[i - 1]) ?? 0;
-    const cur = primaryPos.get(genIds[i]) ?? 0;
-    const minAllowed = prev + step;
-    if (cur < minAllowed) {
-      primaryPos.set(genIds[i], minAllowed);
-    }
-  }
 }
