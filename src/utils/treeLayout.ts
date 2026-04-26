@@ -31,9 +31,9 @@ const NODE_HEIGHT = 100;
 const COUPLE_SIZE = 8;
 
 /** Gap between sibling nodes along the primary axis (TB → horizontal, LR → vertical). */
-const PRIMARY_GAP = 60;
+const PRIMARY_GAP = 120;
 /** Gap between generations along the secondary axis. */
-const GENERATION_GAP = 180;
+const GENERATION_GAP = 220;
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
