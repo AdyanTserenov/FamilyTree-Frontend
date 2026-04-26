@@ -335,11 +335,14 @@ export function getLayoutedElements(
         y: pos0.y + NODE_HEIGHT / 2 - COUPLE_SIZE / 2,
       });
     } else {
-      // Partners are stacked → coupleNode to the right, exactly centred between partners' visual centres.
-      // Formula: (partner1.y + partner2.y) / 2 + (NODE_HEIGHT - COUPLE_SIZE) / 2
+      // Partners are stacked → coupleNode centred horizontally on the partner nodes,
+      // and centred vertically between partners' visual centres.
+      // coupleX: horizontal centre of the partner nodes
+      // coupleY: midpoint of partners' node centres
+      const coupleX = pos0.x + NODE_WIDTH / 2 - COUPLE_SIZE / 2;
       const coupleY = (pos0.y + pos1.y) / 2 + (NODE_HEIGHT - COUPLE_SIZE) / 2;
       posMap.set(coupleId, {
-        x: pos0.x + NODE_WIDTH + 40,
+        x: coupleX,
         y: coupleY,
       });
     }
