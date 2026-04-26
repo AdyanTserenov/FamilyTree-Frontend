@@ -22,8 +22,12 @@ import type { Person } from '../types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 80;
+// NOTE: NODE_WIDTH must match the actual rendered width of PersonNode (style={{ width: 140 }}).
+// NODE_HEIGHT must match the actual rendered height of PersonNode with showPhoto=true.
+// With p-3 padding (12px×2), w-12 h-12 avatar (48px) + mb-2 (8px), name (~16px), date (~14px):
+// total ≈ 110px. We use 100 as a conservative estimate that keeps the coupleNode centred.
+const NODE_WIDTH = 140;
+const NODE_HEIGHT = 100;
 const COUPLE_SIZE = 8;
 
 /** Gap between sibling nodes along the primary axis (TB → horizontal, LR → vertical). */
