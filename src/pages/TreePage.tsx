@@ -215,8 +215,8 @@ export const TreePage = () => {
   const [partnershipStartDate, setPartnershipStartDate] = useState('');
   const [partnershipEndDate, setPartnershipEndDate] = useState('');
 
-  // Person form state
-  const [personForm, setPersonForm] = useState({
+  // Empty person form — used both as initial state and to reset on open/close
+  const emptyPersonForm = {
     firstName: '',
     lastName: '',
     middleName: '',
@@ -226,7 +226,10 @@ export const TreePage = () => {
     birthPlace: '',
     deathPlace: '',
     biography: '',
-  });
+  };
+
+  // Person form state
+  const [personForm, setPersonForm] = useState(emptyPersonForm);
 
   // Fetch trees to get current tree name (for header and export filenames)
   const { data: treesData } = useQuery({
@@ -720,17 +723,7 @@ export const TreePage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['graph', treeIdNum] });
       setAddPersonModalOpen(false);
-      setPersonForm({
-        firstName: '',
-        lastName: '',
-        middleName: '',
-        gender: 'MALE',
-        birthDate: '',
-        deathDate: '',
-        birthPlace: '',
-        deathPlace: '',
-        biography: '',
-      });
+      setPersonForm(emptyPersonForm);
       toast.success('Персона добавлена!');
     },
     onError: () => toast.error('Ошибка добавления персоны'),
@@ -924,7 +917,7 @@ export const TreePage = () => {
                 <span className="hidden sm:inline">Связь</span>
               </button>
               <button
-                onClick={() => setAddPersonModalOpen(true)}
+                onClick={() => { setPersonForm(emptyPersonForm); setAddPersonModalOpen(true); }}
                 className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
@@ -950,7 +943,7 @@ export const TreePage = () => {
             <p className="text-gray-600 mb-6">Добавьте первого члена семьи</p>
             {canEditTree && (
               <button
-                onClick={() => setAddPersonModalOpen(true)}
+                onClick={() => { setPersonForm(emptyPersonForm); setAddPersonModalOpen(true); }}
                 className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
               >
                 <UserPlus className="w-5 h-5" />
@@ -1025,7 +1018,7 @@ export const TreePage = () => {
       {/* Add Person Modal */}
       <Modal
         isOpen={addPersonModalOpen}
-        onClose={() => setAddPersonModalOpen(false)}
+        onClose={() => { setPersonForm(emptyPersonForm); setAddPersonModalOpen(false); }}
         title="Добавить персону"
         size="xl"
       >
@@ -1144,7 +1137,7 @@ export const TreePage = () => {
 
           <div className="flex gap-3 justify-end pt-2">
             <button
-              onClick={() => setAddPersonModalOpen(false)}
+              onClick={() => { setPersonForm(emptyPersonForm); setAddPersonModalOpen(false); }}
               className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Отмена
