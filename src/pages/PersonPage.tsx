@@ -214,9 +214,10 @@ export const PersonPage = () => {
     try {
       const res = await commentService.getCommentsPaged(treeIdNum, personIdNum, page, 10);
       const paged = res.data;
-      setAllComments(prev => reset ? paged.data : [...prev, ...paged.data]);
-      setCommentsHasMore(paged.hasMore);
-      setCommentsTotalCount(paged.totalCount);
+      const comments = paged.data ?? [];
+      setAllComments(prev => reset ? comments : [...prev, ...comments]);
+      setCommentsHasMore(paged.hasMore ?? false);
+      setCommentsTotalCount(paged.totalCount ?? 0);
       setCommentsInitialized(true);
     } catch {
       toast.error('Ошибка загрузки комментариев');
