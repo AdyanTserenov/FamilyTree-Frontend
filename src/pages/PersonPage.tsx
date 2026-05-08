@@ -1061,8 +1061,6 @@ export const PersonPage = () => {
               {aiResult && (() => {
                 const hasData =
                   (aiResult.summary && aiResult.summary.trim().length > 0) ||
-                  (Array.isArray(aiResult.dates) && aiResult.dates.length > 0) ||
-                  (Array.isArray(aiResult.places) && aiResult.places.length > 0) ||
                   (Array.isArray(aiResult.professions) && aiResult.professions.length > 0) ||
                   (Array.isArray(aiResult.events) && aiResult.events.length > 0);
 
@@ -1087,6 +1085,17 @@ export const PersonPage = () => {
                   if (recBirthPlace) patch.birthPlace = recBirthPlace;
                   if (recOccupation) patch.occupation = recOccupation;
                   updatePersonMutation.mutate(patch);
+                };
+
+                const insertEventsAsBiography = () => {
+                  if (!person || !aiResult.events?.length) return;
+                  const bioText = aiResult.events.map((e) => '• ' + e).join('\n');
+                  updatePersonMutation.mutate(
+                    { ...person, biography: bioText },
+                    {
+                      onSuccess: () => toast.success('События вставлены в биографию!'),
+                    }
+                  );
                 };
 
                 return (
@@ -1114,63 +1123,49 @@ export const PersonPage = () => {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {(aiResult.dates?.length ?? 0) > 0 && (
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            Даты
-                          </h4>
-                          <ul className="space-y-1">
-                            {aiResult.dates.map((d, i) => (
-                              <li key={i} className="text-sm text-gray-600">• {d}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                    {/* Профессии + События in 2-col grid */}
+                    {((aiResult.professions?.length ?? 0) > 0 || (aiResult.events?.length ?? 0) > 0) && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {(aiResult.professions?.length ?? 0) > 0 && (
+                          <div className="bg-gray-50 rounded-xl p-4">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              Профессии
+                            </h4>
+                            <ul className="space-y-1">
+                              {aiResult.professions.map((p, i) => (
+                                <li key={i} className="text-sm text-gray-600">• {p}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                      {(aiResult.places?.length ?? 0) > 0 && (
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            Места
-                          </h4>
-                          <ul className="space-y-1">
-                            {aiResult.places.map((p, i) => (
-                              <li key={i} className="text-sm text-gray-600">• {p}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {(aiResult.professions?.length ?? 0) > 0 && (
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            Профессии
-                          </h4>
-                          <ul className="space-y-1">
-                            {aiResult.professions.map((p, i) => (
-                              <li key={i} className="text-sm text-gray-600">• {p}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {(aiResult.events?.length ?? 0) > 0 && (
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4" />
-                            События
-                          </h4>
-                          <ul className="space-y-1">
-                            {aiResult.events.map((e, i) => (
-                              <li key={i} className="text-sm text-gray-600">• {e}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
+                        {(aiResult.events?.length ?? 0) > 0 && (
+                          <div className="bg-gray-50 rounded-xl p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                События
+                              </h4>
+                              {canEditTree && (
+                                <button
+                                  onClick={insertEventsAsBiography}
+                                  disabled={updatePersonMutation.isPending}
+                                  className="flex-shrink-0 px-2.5 py-1 text-xs font-medium text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {updatePersonMutation.isPending ? <Spinner size="sm" /> : 'Вставить в биографию'}
+                                </button>
+                              )}
+                            </div>
+                            <ul className="space-y-1">
+                              {aiResult.events.map((e, i) => (
+                                <li key={i} className="text-sm text-gray-600">• {e}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Recommendations section */}
                     {hasRecommendations && (
