@@ -16,7 +16,7 @@ import '@xyflow/react/dist/style.css';
 import { treeService } from '../api/trees';
 import { Spinner } from '../components/ui/Spinner';
 import { getLayoutedElements } from '../utils/treeLayout';
-import { AlignCenter, AlignLeft } from 'lucide-react';
+import { AlignCenter, AlignLeft, TreePine } from 'lucide-react';
 import type { Person } from '../types';
 
 // ─── Node types ───────────────────────────────────────────────────────────────
@@ -362,7 +362,8 @@ export const PublicTreePage = () => {
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2 text-green-600 font-bold text-xl">
-            <img src="/favicon.svg" alt="FamilyTree" className="w-8 h-8" />
+            <TreePine className="w-6 h-6" />
+            <span>FamilyTree</span>
           </Link>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Семейное дерево</h1>
