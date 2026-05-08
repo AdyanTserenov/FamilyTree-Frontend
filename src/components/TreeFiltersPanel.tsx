@@ -1,8 +1,6 @@
 import { useState } from 'react';
 
 export interface TreeFilters {
-  onlyDescendants: boolean;
-  onlyAncestors: boolean;
   bornAfter: string;
   bornBefore: string;
   birthPlace: string;
@@ -13,8 +11,6 @@ export interface TreeFilters {
 }
 
 export const defaultFilters: TreeFilters = {
-  onlyDescendants: false,
-  onlyAncestors: false,
   bornAfter: '',
   bornBefore: '',
   birthPlace: '',
@@ -54,31 +50,6 @@ export const TreeFiltersPanel = ({ filters, onChange }: TreeFiltersPanelProps) =
         <div className="w-72 h-full bg-white border-l border-gray-200 shadow-lg overflow-y-auto">
           <div className="p-4">
             <h3 className="text-base font-semibold text-gray-800 mb-4">Фильтры</h3>
-
-            {/* Display filters */}
-            <div className="mb-5">
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                Фильтры отображения
-              </h4>
-              <label className="flex items-center gap-2 mb-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.onlyDescendants}
-                  onChange={e => update({ onlyDescendants: e.target.checked, onlyAncestors: false })}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-700">Только прямые потомки</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filters.onlyAncestors}
-                  onChange={e => update({ onlyAncestors: e.target.checked, onlyDescendants: false })}
-                  className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-700">Только прямые предки</span>
-              </label>
-            </div>
 
             {/* Birth period */}
             <div className="mb-5">
