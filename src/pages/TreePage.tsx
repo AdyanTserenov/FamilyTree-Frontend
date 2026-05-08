@@ -1077,7 +1077,7 @@ export const TreePage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Дата рождения</label>
               <input
                 type="date"
-                value={personForm.birthDate}
+                value={personForm.birthDate || undefined}
                 onChange={(e) => setPersonForm((f) => ({ ...f, birthDate: e.target.value }))}
                 className={inputClass}
               />
@@ -1086,7 +1086,7 @@ export const TreePage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Дата смерти</label>
               <input
                 type="date"
-                value={personForm.deathDate}
+                value={personForm.deathDate || undefined}
                 onChange={(e) => setPersonForm((f) => ({ ...f, deathDate: e.target.value }))}
                 className={inputClass}
               />
