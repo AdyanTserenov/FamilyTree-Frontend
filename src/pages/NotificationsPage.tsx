@@ -49,9 +49,10 @@ export const NotificationsPage = () => {
     try {
       const res = await notificationService.getNotificationsPaged(page, PAGE_SIZE);
       const paged = res.data;
-      setPagedNotifications(prev => reset ? paged.data : [...prev, ...paged.data]);
-      setHasMore(paged.hasMore);
-      setTotalCount(paged.totalCount);
+      const items: Notification[] = paged?.data ?? [];
+      setPagedNotifications(prev => reset ? items : [...prev, ...items]);
+      setHasMore(paged?.hasMore ?? false);
+      setTotalCount(paged?.totalCount ?? 0);
       setInitialized(true);
     } catch {
       toast.error('Ошибка загрузки уведомлений');
