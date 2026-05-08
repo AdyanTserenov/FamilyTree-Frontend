@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +8,7 @@ import toast from 'react-hot-toast';
 import { authService } from '../api/auth';
 import { Spinner } from '../components/ui/Spinner';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { Modal } from '../components/ui/Modal';
 
 const schema = z.object({
   firstName: z.string().min(1, 'Введите имя'),
@@ -28,6 +30,7 @@ type FormData = z.infer<typeof schema>;
 export const RegisterPage = () => {
   usePageTitle('Регистрация');
   const navigate = useNavigate();
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
 
   const {
     register,
@@ -173,7 +176,14 @@ export const RegisterPage = () => {
               />
               <label htmlFor="privacyPolicy" className="text-sm text-gray-600">
                 Я согласен с{' '}
-                <span className="text-green-600 hover:text-green-700 cursor-pointer underline">
+                <span
+                  className="text-green-600 hover:text-green-700 cursor-pointer underline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setPrivacyModalOpen(true);
+                  }}
+                >
                   политикой конфиденциальности
                 </span>
               </label>
@@ -200,6 +210,75 @@ export const RegisterPage = () => {
           </p>
         </div>
       </div>
+
+      <Modal
+        isOpen={privacyModalOpen}
+        onClose={() => setPrivacyModalOpen(false)}
+        title="Политика конфиденциальности"
+        size="lg"
+      >
+        <div className="space-y-5 text-sm text-gray-700">
+          <section>
+            <h3 className="font-semibold text-gray-900 text-base mb-2">1. Какие данные мы собираем</h3>
+            <p>
+              При регистрации и использовании сервиса FamilyTree мы собираем следующие персональные данные:
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+              <li>Имя, фамилия и отчество пользователя</li>
+              <li>Адрес электронной почты (email)</li>
+              <li>Данные о родственниках, добавляемых в семейное дерево (имена, даты рождения/смерти, биографические сведения)</li>
+              <li>Фотографии и медиафайлы, загружаемые пользователем</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-900 text-base mb-2">2. Как используются данные</h3>
+            <p>
+              Собранные данные используются исключительно для обеспечения работы сервиса FamilyTree:
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+              <li>Идентификация и аутентификация пользователя</li>
+              <li>Отображение и управление семейным деревом</li>
+              <li>Отправка уведомлений и системных сообщений на email</li>
+              <li>Обеспечение совместного доступа к деревьям по приглашению</li>
+            </ul>
+            <p className="mt-2">
+              Мы <strong>не передаём</strong> ваши данные третьим лицам и не используем их в рекламных целях.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-900 text-base mb-2">3. Хранение и защита данных</h3>
+            <p>
+              Безопасность ваших данных обеспечивается следующими мерами:
+            </p>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+              <li>Аутентификация осуществляется с использованием JWT-токенов с ограниченным сроком действия</li>
+              <li>Пароли хранятся в зашифрованном виде (bcrypt)</li>
+              <li>Передача данных осуществляется по защищённому протоколу HTTPS</li>
+              <li>Медиафайлы хранятся в защищённом облачном хранилище</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-900 text-base mb-2">4. Права пользователя</h3>
+            <p>Вы имеете право в любой момент:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+              <li>Просматривать и редактировать свои персональные данные в профиле</li>
+              <li>Удалить свой аккаунт и все связанные данные через настройки профиля</li>
+              <li>Запросить экспорт своих данных, обратившись в службу поддержки</li>
+            </ul>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-gray-900 text-base mb-2">5. Контакты</h3>
+            <p>
+              По вопросам, связанным с обработкой персональных данных, вы можете обратиться к нам:{' '}
+              <span className="text-green-600 font-medium">familytree@support.ru</span>
+            </p>
+          </section>
+        </div>
+      </Modal>
     </div>
   );
 };
