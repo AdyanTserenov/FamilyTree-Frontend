@@ -428,84 +428,111 @@ export const TreePage = () => {
     return { initialNodes, initialEdges };
   }, [graphData, handlePersonClick]);
 
-  // Filter persons based on active filters
-  const filteredPersonsForGraph = useMemo(() => {
-    let result = persons;
+  // Compute the set of person IDs that match the active filters.
+  // ALL persons are kept in the graph — non-matching ones are just made invisible.
+  const matchingPersonIds = useMemo(() => {
+    const isFilterActive =
+      filters.gender !== 'all' ||
+      !!filters.bornAfter ||
+      !!filters.bornBefore ||
+      !!(filters.birthPlace && filters.birthPlace.trim()) ||
+      filters.hasMedia;
 
-    // Gender filter
-    if (filters.gender !== 'all') {
-      result = result.filter(p => p.gender === filters.gender);
+    // When no filter is active every person matches
+    if (!isFilterActive) return null; // null = "all match"
+
+    const matching = new Set<string>();
+
+    for (const p of persons) {
+      let passes = true;
+
+      // Gender filter
+      if (filters.gender !== 'all' && p.gender !== filters.gender) {
+        passes = false;
+      }
+
+      // Born after
+      if (passes && filters.bornAfter) {
+        const year = parseInt(filters.bornAfter);
+        if (p.birthDate) {
+          const birthYear = new Date(p.birthDate).getFullYear();
+          if (birthYear < year) passes = false;
+        }
+      }
+
+      // Born before
+      if (passes && filters.bornBefore) {
+        const year = parseInt(filters.bornBefore);
+        if (p.birthDate) {
+          const birthYear = new Date(p.birthDate).getFullYear();
+          if (birthYear > year) passes = false;
+        }
+      }
+
+      // Birth place
+      if (passes && filters.birthPlace && filters.birthPlace.trim()) {
+        const place = filters.birthPlace.trim().toLowerCase();
+        if (!p.birthPlace || !p.birthPlace.toLowerCase().includes(place)) {
+          passes = false;
+        }
+      }
+
+      // Has media
+      if (passes && filters.hasMedia) {
+        if ((p.mediaCount ?? 0) === 0) passes = false;
+      }
+
+      if (passes) matching.add(String(p.id));
     }
 
-    // Birth year filters
-    if (filters.bornAfter) {
-      const year = parseInt(filters.bornAfter);
-      result = result.filter(p => {
-        if (!p.birthDate) return true;
-        const birthYear = new Date(p.birthDate).getFullYear();
-        return birthYear >= year;
-      });
-    }
-    if (filters.bornBefore) {
-      const year = parseInt(filters.bornBefore);
-      result = result.filter(p => {
-        if (!p.birthDate) return true;
-        const birthYear = new Date(p.birthDate).getFullYear();
-        return birthYear <= year;
-      });
-    }
-
-    // Birth place filter
-    if (filters.birthPlace && filters.birthPlace.trim()) {
-      const place = filters.birthPlace.trim().toLowerCase();
-      result = result.filter(p => {
-        if (!p.birthPlace) return false;
-        return p.birthPlace.toLowerCase().includes(place);
-      });
-    }
-
-    // Has media filter
-    if (filters.hasMedia) {
-      result = result.filter(p => (p.mediaCount ?? 0) > 0);
-    }
-
-    return result;
+    return matching;
   }, [persons, filters]);
 
-  // Build filtered nodes/edges, passing through couple nodes whose both partners pass the filter
+  // Build nodes/edges keeping ALL nodes in the graph.
+  // Non-matching nodes get opacity:0 + pointerEvents:none so layout is preserved.
   const { filteredNodes, filteredEdges } = useMemo(() => {
-    const allowedPersonIds = new Set(filteredPersonsForGraph.map(p => String(p.id)));
-
-    // Keep person nodes that pass filter + couple nodes whose BOTH partners pass filter
-    const preFilteredNodes = initialNodes.filter(n => {
-      if (n.type === 'coupleNode') {
-        const partnerEdges = initialEdges.filter(e => e.target === n.id);
-        return partnerEdges.every(e => allowedPersonIds.has(e.source));
+    // filteredNodes: map ALL nodes, applying visibility style where needed
+    const filteredNodes = initialNodes.map(n => {
+      // Inject showPhoto/showBirthPlace into person nodes
+      if (n.type === 'personNode') {
+        const visible = matchingPersonIds === null || matchingPersonIds.has(n.id);
+        return {
+          ...n,
+          style: visible
+            ? { ...(n.style ?? {}) }
+            : { ...(n.style ?? {}), opacity: 0, pointerEvents: 'none' as const },
+          data: {
+            ...(n.data as PersonNodeData),
+            showPhoto: filters.showPhotos,
+            showBirthPlace: filters.showBirthPlace,
+          } as PersonNodeData,
+        };
       }
-      return allowedPersonIds.has(n.id);
+
+      // CoupleNode: invisible only when BOTH partners are filtered out
+      if (n.type === 'coupleNode') {
+        if (matchingPersonIds === null) {
+          // No filter active — keep visible
+          return n;
+        }
+        const partnerEdges = initialEdges.filter(e => e.target === n.id);
+        const anyPartnerVisible = partnerEdges.some(e => matchingPersonIds.has(e.source));
+        return {
+          ...n,
+          style: anyPartnerVisible
+            ? { ...(n.style ?? {}) }
+            : { ...(n.style ?? {}), opacity: 0, pointerEvents: 'none' as const },
+        };
+      }
+
+      return n;
     });
 
-    const allowedNodeIds = new Set(preFilteredNodes.map(n => n.id));
-
-    const filteredEdges = initialEdges.filter(
-      e => allowedNodeIds.has(e.source) && allowedNodeIds.has(e.target)
-    );
-
-    // Inject showPhoto/showBirthPlace into person nodes (direction will be set by getLayoutedElements)
-    const filteredNodes = preFilteredNodes.map(n => {
-      if (n.type !== 'personNode') return n;
-      return {
-        ...n,
-        data: {
-          ...(n.data as PersonNodeData),
-          showPhoto: filters.showPhotos,
-          showBirthPlace: filters.showBirthPlace,
-        } as PersonNodeData,
-      };
-    });
+    // Keep ALL edges — they will visually disappear when both endpoints are opacity:0
+    const filteredEdges = initialEdges;
 
     return { filteredNodes, filteredEdges };
-  }, [initialNodes, initialEdges, filteredPersonsForGraph, filters.showPhotos, filters.showBirthPlace]);
+  }, [initialNodes, initialEdges, matchingPersonIds, filters.showPhotos, filters.showBirthPlace]);
 
   // Build relations list from raw personsList relationships data
   const personsList = useMemo<Person[]>(() => {
