@@ -33,7 +33,6 @@ const PUBLIC_ENDPOINTS = [
   '/reset',
   '/resend-verification',
   '/ping',
-  '/invite/',
 ];
 
 const isPublicEndpoint = (url: string | undefined): boolean => {
