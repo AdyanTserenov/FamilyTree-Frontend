@@ -192,6 +192,19 @@ const PersonNode = ({ data }: NodeProps) => {
 
 type LayoutMode = 'TB' | 'LR';
 
+// Empty person form — defined outside the component so it is a stable reference
+// and birthDate / deathDate are always initialised to '' (never today's date).
+const emptyPersonForm = {
+  firstName: '',
+  lastName: '',
+  middleName: '',
+  gender: 'MALE' as 'MALE' | 'FEMALE' | 'OTHER',
+  birthDate: '',
+  deathDate: '',
+  birthPlace: '',
+  deathPlace: '',
+  biography: '',
+};
 
 export const TreePage = () => {
   const { treeId } = useParams<{ treeId: string }>();
@@ -215,20 +228,7 @@ export const TreePage = () => {
   const [partnershipStartDate, setPartnershipStartDate] = useState('');
   const [partnershipEndDate, setPartnershipEndDate] = useState('');
 
-  // Empty person form — used both as initial state and to reset on open/close
-  const emptyPersonForm = {
-    firstName: '',
-    lastName: '',
-    middleName: '',
-    gender: 'MALE' as 'MALE' | 'FEMALE' | 'OTHER',
-    birthDate: '',
-    deathDate: '',
-    birthPlace: '',
-    deathPlace: '',
-    biography: '',
-  };
-
-  // Person form state
+  // Person form state — reset to emptyPersonForm whenever the add-person modal opens
   const [personForm, setPersonForm] = useState(emptyPersonForm);
 
   // Fetch trees to get current tree name (for header and export filenames)
