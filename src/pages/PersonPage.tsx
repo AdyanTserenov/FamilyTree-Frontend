@@ -1024,10 +1024,11 @@ export const PersonPage = () => {
                       className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200"
                     >
                       {file.fileType === 'IMAGE' ? (
-                        <div className="aspect-square bg-gray-100">
+                        <div className="aspect-square bg-gray-100 overflow-hidden">
                           <img
                             src={file.url}
                             alt={file.fileName}
+                            loading="lazy"
                             className="w-full h-full object-cover"
                           />
                         </div>
