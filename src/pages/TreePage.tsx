@@ -358,8 +358,13 @@ export const TreePage = () => {
       }
     }
 
-    // For PARENT_CHILD: route through couple node if parent has a partner
+    // For PARENT_CHILD: route through couple node if parent has a partner.
+    // Deduplicate: when both partners are parents of the same child, only emit
+    // ONE edge from the couple node to the child (not two separate edges).
     const childEdges: Edge[] = [];
+    // Track (sourceId → childId) pairs already added to avoid duplicates
+    const seenChildEdges = new Set<string>();
+
     for (const rel of parentChildRels) {
       const parentId = rel.person1Id;
       const childId = rel.person2Id;
@@ -375,13 +380,21 @@ export const TreePage = () => {
         const a = Math.min(partnerRel.person1Id, partnerRel.person2Id);
         const b = Math.max(partnerRel.person1Id, partnerRel.person2Id);
         const coupleKey = `${a}-${b}`;
-        sourceId = coupleNodeMap.get(coupleKey) ?? String(parentId);
-        if (sourceId.startsWith('couple-')) {
+        const resolvedCoupleId = coupleNodeMap.get(coupleKey);
+        if (resolvedCoupleId) {
+          sourceId = resolvedCoupleId;
           sourceHandle = 'bottom';
+        } else {
+          sourceId = String(parentId);
         }
       } else {
         sourceId = String(parentId);
       }
+
+      // Skip if we already emitted an edge from this source to this child
+      const edgeKey = `${sourceId}→${childId}`;
+      if (seenChildEdges.has(edgeKey)) continue;
+      seenChildEdges.add(edgeKey);
 
       childEdges.push({
         id: `edge-${rel.id}`,
