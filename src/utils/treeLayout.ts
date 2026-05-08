@@ -250,12 +250,26 @@ export function getLayoutedElements(
     });
   }
 
+  // ── Helper: build a map from personId → their partner's personId (same generation) ──
+  // Used in Step 7 to treat child+partner as a unit when computing layout widths.
+  const personPartner = new Map<string, string>();
+  for (const [, partners] of couplePartners) {
+    if (partners.length >= 2) {
+      personPartner.set(partners[0], partners[1]);
+      personPartner.set(partners[1], partners[0]);
+    }
+  }
+
   // ── Step 7: Compute CoupleNode primary positions, then centre children ─────
   //
   // Strict order of operations per couple:
   //   1. Partners already have their primaryPos from Step 6.
   //   2. Compute the CoupleNode's primary-axis centre = midpoint of partners' centres.
-  //   3. Place children evenly centred under that CoupleNode centre.
+  //   3. Place children (and their partners) evenly centred under that CoupleNode centre.
+  //
+  // Key fix: when a child has a partner at the same generation, the child+partner
+  // pair must be treated as a single "slot" of width (2*nodeSize + PRIMARY_GAP) so
+  // that the partner is not placed on top of the child.
   //
   // We process generations top-down (0 → maxGen) so that parent couples are
   // fully positioned before their children's generation is processed.
@@ -280,15 +294,66 @@ export function getLayoutedElements(
       couplePrimaryCenter.set(coupleId, coupleCenter);
 
       // ── 7b: Place children evenly centred under this CoupleNode
+      // Each child that itself has a partner (at the child's generation) is treated
+      // as a 2-node "unit" so the partner gets proper spacing beside the child.
       const children = parentChildren.get(coupleId) ?? [];
       if (children.length === 0) continue;
 
-      const childCount = children.length;
-      const totalChildrenWidth = childCount * nodeSize + (childCount - 1) * PRIMARY_GAP;
-      const firstChildPrimary = coupleCenter - totalChildrenWidth / 2;
+      // Build slot descriptors: each slot is either a lone child or a child+partner pair.
+      // We track which children have already been placed as part of a pair.
+      const placedAsPartner = new Set<string>();
+      type Slot = { primary: string; secondary?: string };
+      const slots: Slot[] = [];
 
-      for (let i = 0; i < childCount; i++) {
-        primaryPos.set(children[i], firstChildPrimary + i * nodeStep);
+      for (const childId of children) {
+        if (placedAsPartner.has(childId)) continue;
+        const childGen = generation.get(childId) ?? gen + 1;
+        const partnerId = personPartner.get(childId);
+        // Only pair them if the partner is at the same generation AND is NOT itself
+        // a child of this couple (to avoid double-counting).
+        if (
+          partnerId &&
+          (generation.get(partnerId) ?? -1) === childGen &&
+          !children.includes(partnerId)
+        ) {
+          // Determine left/right order: male first in TB, keep original order in LR
+          const childPerson = personById.get(childId);
+          const partnerPerson = personById.get(partnerId);
+          let left: string, right: string;
+          if (isTB) {
+            if (childPerson?.gender === 'FEMALE' && partnerPerson?.gender === 'MALE') {
+              left = partnerId; right = childId;
+            } else {
+              left = childId; right = partnerId;
+            }
+          } else {
+            left = childId; right = partnerId;
+          }
+          slots.push({ primary: left, secondary: right });
+          placedAsPartner.add(partnerId);
+        } else {
+          slots.push({ primary: childId });
+        }
+      }
+
+      // Compute total width of all slots
+      // A paired slot occupies: 2*nodeSize + PRIMARY_GAP (the two nodes + gap between them)
+      // A lone slot occupies: nodeSize
+      // Between slots there is always PRIMARY_GAP
+      const slotWidths = slots.map(s => s.secondary ? 2 * nodeSize + PRIMARY_GAP : nodeSize);
+      const totalWidth =
+        slotWidths.reduce((sum, w) => sum + w, 0) +
+        (slots.length - 1) * PRIMARY_GAP;
+
+      let cursor = coupleCenter - totalWidth / 2;
+
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        primaryPos.set(slot.primary, cursor);
+        if (slot.secondary) {
+          primaryPos.set(slot.secondary, cursor + nodeSize + PRIMARY_GAP);
+        }
+        cursor += slotWidths[i] + PRIMARY_GAP;
       }
     }
 
@@ -298,12 +363,54 @@ export function getLayoutedElements(
       if (directChildren.length === 0) continue;
 
       const parentCentre = (primaryPos.get(personId) ?? 0) + nodeSize / 2;
-      const childCount = directChildren.length;
-      const totalChildrenWidth = childCount * nodeSize + (childCount - 1) * PRIMARY_GAP;
-      const firstChildPrimary = parentCentre - totalChildrenWidth / 2;
 
-      for (let i = 0; i < childCount; i++) {
-        primaryPos.set(directChildren[i], firstChildPrimary + i * nodeStep);
+      // Same slot logic as 7b: treat child+partner pairs as units
+      const placedAsPartner = new Set<string>();
+      type Slot = { primary: string; secondary?: string };
+      const slots: Slot[] = [];
+
+      for (const childId of directChildren) {
+        if (placedAsPartner.has(childId)) continue;
+        const childGen = generation.get(childId) ?? gen + 1;
+        const partnerId = personPartner.get(childId);
+        if (
+          partnerId &&
+          (generation.get(partnerId) ?? -1) === childGen &&
+          !directChildren.includes(partnerId)
+        ) {
+          const childPerson = personById.get(childId);
+          const partnerPerson = personById.get(partnerId);
+          let left: string, right: string;
+          if (isTB) {
+            if (childPerson?.gender === 'FEMALE' && partnerPerson?.gender === 'MALE') {
+              left = partnerId; right = childId;
+            } else {
+              left = childId; right = partnerId;
+            }
+          } else {
+            left = childId; right = partnerId;
+          }
+          slots.push({ primary: left, secondary: right });
+          placedAsPartner.add(partnerId);
+        } else {
+          slots.push({ primary: childId });
+        }
+      }
+
+      const slotWidths = slots.map(s => s.secondary ? 2 * nodeSize + PRIMARY_GAP : nodeSize);
+      const totalWidth =
+        slotWidths.reduce((sum, w) => sum + w, 0) +
+        (slots.length - 1) * PRIMARY_GAP;
+
+      let cursor = parentCentre - totalWidth / 2;
+
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        primaryPos.set(slot.primary, cursor);
+        if (slot.secondary) {
+          primaryPos.set(slot.secondary, cursor + nodeSize + PRIMARY_GAP);
+        }
+        cursor += slotWidths[i] + PRIMARY_GAP;
       }
     }
   }
