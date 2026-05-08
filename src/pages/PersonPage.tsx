@@ -155,6 +155,7 @@ export const PersonPage = () => {
   const personIdNum = Number(personId);
 
   const [activeTab, setActiveTab] = useState<Tab>('info');
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<'ALL' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('ALL');
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -252,6 +253,13 @@ export const PersonPage = () => {
     enabled: activeTab === 'media' && !!treeIdNum && !!personIdNum,
   });
   const mediaFiles = mediaData?.data ?? [];
+
+  // Reset media type filter when switching to media tab or when media files change
+  useEffect(() => {
+    if (activeTab === 'media') {
+      setMediaTypeFilter('ALL');
+    }
+  }, [activeTab, mediaFiles.length]);
 
   // Mutations
   const updatePersonMutation = useMutation({
@@ -931,7 +939,24 @@ export const PersonPage = () => {
           )}
 
           {/* Media Tab */}
-          {activeTab === 'media' && (
+          {activeTab === 'media' && (() => {
+            const mediaTypeOptions: { type: 'ALL' | 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'; label: string }[] = [
+              { type: 'ALL', label: 'Все' },
+              { type: 'IMAGE', label: 'Фото' },
+              { type: 'VIDEO', label: 'Видео' },
+              { type: 'AUDIO', label: 'Аудио' },
+              { type: 'DOCUMENT', label: 'Документы' },
+            ];
+            const presentTypes = new Set(mediaFiles.map((f: MediaFile) => f.fileType));
+            const visibleOptions = mediaTypeOptions.filter(
+              (opt) => opt.type === 'ALL' || presentTypes.has(opt.type)
+            );
+            const filteredFiles =
+              mediaTypeFilter === 'ALL'
+                ? mediaFiles
+                : mediaFiles.filter((f: MediaFile) => f.fileType === mediaTypeFilter);
+
+            return (
             <div className="space-y-4">
               {canEditTree && (
                 <label
@@ -964,11 +989,36 @@ export const PersonPage = () => {
                 )}
               </div>
 
-              {mediaFiles.length === 0 ? (
+              {/* Media type filter buttons */}
+              {mediaFiles.length > 0 && visibleOptions.length > 1 && (
+                <div className="flex flex-wrap gap-2">
+                  {visibleOptions.map((opt) => {
+                    const count =
+                      opt.type === 'ALL'
+                        ? mediaFiles.length
+                        : mediaFiles.filter((f: MediaFile) => f.fileType === opt.type).length;
+                    return (
+                      <button
+                        key={opt.type}
+                        onClick={() => setMediaTypeFilter(opt.type)}
+                        className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                          mediaTypeFilter === opt.type
+                            ? 'bg-green-600 text-white border-green-600'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-green-400'
+                        }`}
+                      >
+                        {opt.label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {filteredFiles.length === 0 ? (
                 <p className="text-gray-500 text-center py-8">Нет медиафайлов</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {mediaFiles.map((file: MediaFile) => (
+                  {filteredFiles.map((file: MediaFile) => (
                     <div
                       key={file.id}
                       className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200"
@@ -1015,7 +1065,8 @@ export const PersonPage = () => {
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* AI Tab */}
           {activeTab === 'ai' && (
