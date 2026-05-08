@@ -585,6 +585,13 @@ export const PersonPage = () => {
           {/* Info Tab */}
           {activeTab === 'info' && (
             <div className="space-y-6">
+              {person.occupation && (
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Профессия</h3>
+                  <p className="text-gray-800">{person.occupation}</p>
+                </div>
+              )}
+
               {person.biography ? (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -1014,9 +1021,16 @@ export const PersonPage = () => {
           {activeTab === 'ai' && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Текст для анализа
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Текст для анализа
+                  </label>
+                  <VoiceInputButton
+                    onResult={(text) =>
+                      setAiText((prev) => (prev ? prev + ' ' : '') + text)
+                    }
+                  />
+                </div>
                 <textarea
                   value={aiText}
                   onChange={(e) => setAiText(e.target.value)}
@@ -1361,17 +1375,7 @@ export const PersonPage = () => {
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">Биография</label>
-              <VoiceInputButton
-                onResult={(text) =>
-                  setPersonForm((f) => ({
-                    ...f,
-                    biography: (f.biography ? f.biography + ' ' : '') + text,
-                  }))
-                }
-              />
-            </div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Биография</label>
             <textarea
               value={personForm.biography ?? ''}
               onChange={(e) => setPersonForm((f) => ({ ...f, biography: e.target.value }))}
