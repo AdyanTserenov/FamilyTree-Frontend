@@ -270,13 +270,6 @@ export const RegisterPage = () => {
             </ul>
           </section>
 
-          <section>
-            <h3 className="font-semibold text-gray-900 text-base mb-2">5. Контакты</h3>
-            <p>
-              По вопросам, связанным с обработкой персональных данных, вы можете обратиться к нам:{' '}
-              <span className="text-green-600 font-medium">familytree@support.ru</span>
-            </p>
-          </section>
         </div>
       </Modal>
     </div>
