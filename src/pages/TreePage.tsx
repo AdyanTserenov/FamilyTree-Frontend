@@ -354,19 +354,7 @@ export const TreePage = () => {
       }
     }
 
-    // Build parentsOf map: childId → list of parentIds
-    // This is needed to find the correct CoupleNode for each child when a parent
-    // has multiple partnerships (e.g. Peter I + Evdokia AND Peter I + Catherine).
-    const parentsOf = new Map<number, number[]>();
-    for (const rel of parentChildRels) {
-      const parentId = rel.person1Id;
-      const childId = rel.person2Id;
-      if (!parentsOf.has(childId)) parentsOf.set(childId, []);
-      parentsOf.get(childId)!.push(parentId);
-    }
-
-    // For PARENT_CHILD: route through the CoupleNode that represents the specific
-    // partnership this child was born from (parentId + the child's OTHER parent).
+    // For PARENT_CHILD: route through couple node if parent has a partner.
     // Deduplicate: when both partners are parents of the same child, only emit
     // ONE edge from the couple node to the child (not two separate edges).
     const childEdges: Edge[] = [];
@@ -377,28 +365,24 @@ export const TreePage = () => {
       const parentId = rel.person1Id;
       const childId = rel.person2Id;
 
-      // Find the CoupleNode that connects THIS parent with ANOTHER parent of THIS child.
-      // This correctly handles multiple marriages: each child routes through the
-      // CoupleNode of the specific partnership they were born from.
-      const childParents = parentsOf.get(childId) ?? [];
-      let resolvedCoupleId: string | undefined;
-      for (const otherParentId of childParents) {
-        if (otherParentId === parentId) continue;
-        const a = Math.min(parentId, otherParentId);
-        const b = Math.max(parentId, otherParentId);
-        const coupleKey = `${a}-${b}`;
-        const cid = coupleNodeMap.get(coupleKey);
-        if (cid) {
-          resolvedCoupleId = cid;
-          break;
-        }
-      }
+      // Find if this parent has a partnership
+      const partnerRel = partnerships.find(
+        p => p.person1Id === parentId || p.person2Id === parentId
+      );
 
       let sourceId: string;
       let sourceHandle: string | undefined;
-      if (resolvedCoupleId) {
-        sourceId = resolvedCoupleId;
-        sourceHandle = 'bottom';
+      if (partnerRel) {
+        const a = Math.min(partnerRel.person1Id, partnerRel.person2Id);
+        const b = Math.max(partnerRel.person1Id, partnerRel.person2Id);
+        const coupleKey = `${a}-${b}`;
+        const resolvedCoupleId = coupleNodeMap.get(coupleKey);
+        if (resolvedCoupleId) {
+          sourceId = resolvedCoupleId;
+          sourceHandle = 'bottom';
+        } else {
+          sourceId = String(parentId);
+        }
       } else {
         sourceId = String(parentId);
       }

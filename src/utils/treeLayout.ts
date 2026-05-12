@@ -195,55 +195,30 @@ export function getLayoutedElements(
   // then interleave them.
   const orderedByGen = new Map<number, string[]>();
   for (const [gen, ids] of genGroups) {
-    // Determine which ids belong to a couple at this generation.
-    // A person with multiple partnerships (e.g. Peter I married twice) must appear
-    // only ONCE in the ordered list — we anchor them to their first couple group and
-    // append all additional partners as extra entries after that group.
+    // Determine which ids belong to a couple at this generation
     const coupleGroupsAtGen: string[][] = [];
     const singlesAtGen: string[] = [];
-    // assignedToCouple tracks ids that have been placed into a couple group already.
-    // A person who is the "anchor" of multiple couples is added on the first couple
-    // encounter; subsequent couples for the same anchor only add the new partner.
     const assignedToCouple = new Set<string>();
 
     for (const [, partners] of couplePartners) {
       const atThisGen = partners.filter(p => generation.get(p) === gen);
-      if (atThisGen.length < 2) continue;
-
-      const [p0, p1] = atThisGen;
-      const person0 = personById.get(p0);
-      const person1 = personById.get(p1);
-
-      // Determine male-first order
-      let left: string, right: string;
-      if (person0?.gender === 'MALE' && person1?.gender === 'FEMALE') {
-        left = p0; right = p1;
-      } else if (person0?.gender === 'FEMALE' && person1?.gender === 'MALE') {
-        left = p1; right = p0;
-      } else {
-        left = p0; right = p1;
+      if (atThisGen.length === 2) {
+        // Order: male first, then female (or keep original order)
+        const [p0, p1] = atThisGen;
+        const person0 = personById.get(p0);
+        const person1 = personById.get(p1);
+        let ordered: string[];
+        if (person0?.gender === 'MALE' && person1?.gender === 'FEMALE') {
+          ordered = [p0, p1];
+        } else if (person0?.gender === 'FEMALE' && person1?.gender === 'MALE') {
+          ordered = [p1, p0];
+        } else {
+          ordered = [p0, p1];
+        }
+        coupleGroupsAtGen.push(ordered);
+        assignedToCouple.add(p0);
+        assignedToCouple.add(p1);
       }
-
-      if (!assignedToCouple.has(left) && !assignedToCouple.has(right)) {
-        // Neither partner placed yet — create a new couple group
-        coupleGroupsAtGen.push([left, right]);
-        assignedToCouple.add(left);
-        assignedToCouple.add(right);
-      } else if (assignedToCouple.has(left) && !assignedToCouple.has(right)) {
-        // left (anchor) already placed — append right as an extra partner after the anchor's group
-        // Find the group containing left and append right after it
-        const anchorGroup = coupleGroupsAtGen.find(g => g.includes(left));
-        if (anchorGroup) anchorGroup.push(right);
-        else coupleGroupsAtGen.push([left, right]);
-        assignedToCouple.add(right);
-      } else if (!assignedToCouple.has(left) && assignedToCouple.has(right)) {
-        // right (anchor) already placed — append left as an extra partner
-        const anchorGroup = coupleGroupsAtGen.find(g => g.includes(right));
-        if (anchorGroup) anchorGroup.push(left);
-        else coupleGroupsAtGen.push([left, right]);
-        assignedToCouple.add(left);
-      }
-      // If both already assigned, skip (already handled)
     }
 
     for (const id of ids) {
